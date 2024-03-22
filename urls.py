@@ -18,21 +18,23 @@ urlpatterns = [
     path('proyecto/ver/<uuid:pk>', views.ProyectoDetailView.as_view(), name='detail_proyecto'),
     path('proyecto/actualizar/<uuid:pk>', views.ProyectoUpdateView.as_view(), name='update_proyecto'),
     path('proyecto/eliminar/<uuid:pk>', views.ProyectoDeleteView.as_view(), name='delete_proyecto'),
-#
-#    path('area_tipolicencia/nueva/', views.Area_TipoLicenciaFormView.as_view(), name='create_areatipo'),
-#    path('area_tipolicencia/actualizar/<uuid:pk>', views.Area_TipoLicenciaUpdateView.as_view(), name='update_areatipo'),
-#    path('area_tipolicencia/eliminar/<uuid:pk>', views.Area_TipoLicenciaDeleteView.as_view(), name='delete_areatipo'),
-#
-#    path('usuario/', views.UsuarioListView.as_view(), name='list_usuario'),
-#    path('usuario/nuevo/', views.UsuarioCreateView.as_view(), name='create_usuario'),
-#    path('usuario/actualizar/<uuid:pk>', views.UsuarioUpdateView.as_view(), name='update_usuario'),
-#    path('usuario/eliminar/<uuid:pk>', views.UsuarioDeleteView.as_view(), name='delete_usuario'),
-#
-#    path('stream/', views.StreamListView.as_view(), name='list_stream'),
-#    path('stream/ver/<uuid:pk>', views.StreamDetailView.as_view(), name='detail_stream'),
-#    path('qlikapi/recargar/', views.refresh_all, name='refresh_all_data'),
-#
-#    path('modelo/ver/<uuid:pk>', views.ModelDetailView.as_view(), name='detail_modelo'),
+
+    path('objetivo/nuevo/', views.Proyecto_ObjetivoFormView.as_view(), name='create_proyectoobjetivo'),
+    path('objetivo/actualizar/<uuid:pk>', views.Proyecto_ObjetivoUpdateView.as_view(), name='update_proyectoobjetivo'),
+    path('objetivo/eliminar/<uuid:pk>', views.Proyecto_ObjetivoDeleteView.as_view(), name='delete_proyectoobjetivo'),
+
+    path('meta/nueva/', views.Proyecto_MetaFormView.as_view(), name='create_proyectometa'),
+    path('meta/actualizar/<uuid:pk>', views.Proyecto_MetaUpdateView.as_view(), name='update_proyectometa'),
+    path('meta/eliminar/<uuid:pk>', views.Proyecto_MetaDeleteView.as_view(), name='delete_proyectometa'),
+
+    path('fase/nueva/', views.Proyecto_FaseFormView.as_view(), name='create_proyectofase'),
+    path('fase/actualizar/<uuid:pk>', views.Proyecto_FaseUpdateView.as_view(), name='update_proyectofase'),
+    path('fase/eliminar/<uuid:pk>', views.Proyecto_FaseDeleteView.as_view(), name='delete_proyectofase'),
+
+    path('tarea/nueva/', views.Proyecto_TareaFormView.as_view(), name='create_proyectotarea'),
+    path('tarea/actualizar/<uuid:pk>', views.Proyecto_TareaUpdateView.as_view(), name='update_proyectotarea'),
+    path('tarea/eliminar/<uuid:pk>', views.Proyecto_TareaDeleteView.as_view(), name='delete_proyectotarea'),
+
 ]
 
 

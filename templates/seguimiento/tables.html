@@ -1,0 +1,140 @@
+{% load static fields_tags %}
+
+  <div class="col"> 
+    {% if table.tipo == 'table' %}
+      {% if table.object_list %}
+      <h2>{{ table.title }}</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            {% if table.enumerar > -1 %}
+            <th scope="col">#</th>
+            {% endif %}
+
+            {% for campo in table.campos %}
+              <th scope="col">{% get_verbose_field_name table.object_list.0 campo %}</th>
+            {% endfor %}
+
+            {% for campo in table.campos_extra %}
+              <th scope="col">{{ campo.nombre }}</th>
+            {% endfor %}
+
+            {% if table.opciones %}
+            <th scope="col">{{ table.opciones }}</th>
+            {% endif %}
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for object in table.object_list %}
+          <tr>
+            {% if table.enumerar > -1 %}
+            <th scope="row">
+              {% if table.enumerar == 0 %}
+                {{ forloop.counter0 }}
+              {% else %}
+                {{ forloop.counter }}
+              {% endif %}
+            </th>
+            {% endif %}
+
+            {% for campo in table.campos %}
+            <td>{% get_object_value object campo %}</td>
+            {% endfor %}
+
+            {% for campo in table.campos_extra %}
+            {% if campo.value %}
+            <td>{% get_object_value object campo %}</td>
+            {% elif campo.funcion %}
+            <td>{% get_object_funcvalue object campo.funcion %}</th>
+            {% else%}
+            <td>{{ campo.constante }}</td>
+            {% endif %}
+            {% endfor %}
+
+            {% if table.opciones %}
+            <th scope="col">
+              {% if object.url_detail %}
+              <a href="{{ object.url_detail }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.detail }}">
+                <img src="{% static 'images/qs_detail.png' %}" alt="{{ opciones.detail }}" height="25px">
+              </a>
+              {% endif %}
+
+              {% if object.url_update %}
+              <a href="{{ object.url_update }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
+                <img src="{% static 'images/qs_update.png' %}" alt="{{ opciones.update }}" height="25px">
+              </a>
+              {% endif %}
+              
+              {% if object.url_delete %}
+              <a href="{{ object.url_delete }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
+                <img src="{% static 'images/qs_delete.png' %}" alt="{{ opciones.delete }}" height="25px">
+              </a>
+              {% endif %}
+            </th>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    {% endif %}
+
+    {% if table.tipo == 'accordion' %}
+    <h2>{{ table.title }}</h2>
+    <div class="accordion" id="accordionExample">
+      {% for object in table.object_list %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingOne">
+          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{forloop.counter}}" aria-expanded="true" aria-controls="collapse{{forloop.counter}}">
+            {% if object.url_update %}
+              <a href="{{ object.url_update }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
+                <img src="{% static 'images/qs_update.png' %}" alt="{{ opciones.update }}" height="25px">
+              </a>
+            {% endif %}
+              
+            {% if object.url_delete %}
+              <a href="{{ object.url_delete }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
+                <img src="{% static 'images/qs_delete.png' %}" alt="{{ opciones.delete }}" height="25px">
+              </a>
+            {% endif %} 
+            {{ object }} ({% get_object_funcvalue object table.func_extra %} %)
+          </button>
+        </h2>
+        <div id="collapse{{forloop.counter}}" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+          <div class="accordion-body">
+            <table class="table">
+                <tbody>
+                  {% for subobj in object.get_subtable %}
+                  <tr>
+                    {% for campo in table.campos %}
+                    <td>{% get_object_value subobj campo %}</td>
+                    {% endfor %}
+
+                    <td>
+                    {% if subobj.url_update %}
+                      <a href="{{ subobj.url_update }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
+                        <img src="{% static 'images/qs_update.png' %}" alt="{{ opciones.update }}" height="25px">
+                      </a>
+                    {% endif %}
+                      
+                    {% if subobj.url_delete %}
+                      <a href="{{ subobj.url_delete }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
+                        <img src="{% static 'images/qs_delete.png' %}" alt="{{ opciones.delete }}" height="25px">
+                      </a>
+                    {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+
+
+  </div>

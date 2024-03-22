@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static fields_tags %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <h1>{% if title %}{{ title }}:{% endif %} {{ object }}</h1>
+
+    <div class="container">
+    {% for campo in campos.lista %}
+      <div class="row">
+        <div class="col">
+          <strong>{% get_verbose_field_name object campo %}</strong>
+        </div>
+        <div class="col">
+          {% get_object_value object campo %}
+        </div>
+      </div>
+    {% endfor %}
+
+    {% for campo in campos_adicionales %}
+      <div class="row">
+        <div class="col">
+          <strong>{{ campo.display }}</strong>
+        </div>
+        {% if 'valor' in campo %}
+        <div class="col"> {{ campo.valor }}</div>
+        {% elif campo.ul_lista %}
+        <div class="col"> 
+          <ul>
+          {% for elemento in campo.ul_lista %}
+          <li> {{ elemento }} </li>
+          {% endfor %}
+          </ul>
+        </div>
+        {% else %}
+        {{ campo }}
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    {% if campos.opciones %}
+      <div class="row">
+        <div class="col">
+          <strong>{{ campos.opciones }}</strong>
+        </div>
+
+        <div class="col">
+            {% for form in forms %}
+              {% if form.action %}
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#{{ form.modal }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ form.display }}">
+                <img src="{% static 'images/' %}{{ form.link_img }}" alt="{{ form.display }}" height="25px">
+              </button>
+              {% endif %}
+            {% endfor %}
+
+            {% if object.url_update %}
+            <a href="{{ object.url_update }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
+              <img src="{% static 'images/' %}{{imagenes.update}} " alt="{{ opciones.update }}" height="25px">
+            </a>
+            {% endif %}
+            {% if object.url_delete %}
+            <a href="{{ object.url_delete }}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
+              <img src="{% static 'images/' %}{{imagenes.delete}}" alt="{{ opciones.delete }}" height="25px">
+            </a>
+            {% endif %}
+        </div>
+          {% endif %}
+    </div>
+
+    {% for table in tables %}
+      {% if forloop.counter == 1 or forloop.counter > table.fin_columna %}
+      <div class="row">
+      {% endif %}
+        {% include 'seguimiento/tables.html' %}
+        
+      {% if not table.fin_columna or forloop.counter == table.fin_columna %}
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    {% for table in manual_tables %}
+      {% include 'template/manual_tables.html' %}
+    {% endfor %}
+
+    {% for form in forms %}
+      {% include 'template/modal_form.html' %}
+    {% endfor %}
+{% endblock %}

@@ -108,11 +108,16 @@ class EstadoListView(PersonalListView, SeguimientoContextMixin):
             ],
         },
         'campos_extra': [
+            {   
+                'nombre': _('Bloquea'),
+                'funcion': 'get_bloquea',
+            },
             {
                 'nombre':   _('Vigente'), #display
                 # valor, constante o funcion 
                 'funcion': 'get_vigente',  
             },
+            
         ],
         'opciones': DISPLAYS['opciones'],
         'create' :{

@@ -77,7 +77,8 @@ class Proyecto(models.Model):
 
     def get_resumen(self, max_length=60):
         suspensivos = '...' if len(self.descripcion) > max_length else ''
-        return f'{self.descripcion[:max_length].replace("\n", "")}{suspensivos}'
+        resumen = self.descripcion[:max_length].replace("\n", "")
+        return f'{resumen}{suspensivos}'
 
     def get_modificable(self):
         '''

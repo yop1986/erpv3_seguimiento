@@ -29,7 +29,17 @@
         <div class="col"> 
           <ul>
           {% for elemento in campo.ul_lista %}
-          <li> {{ elemento }} </li>
+          <li> 
+            <form class="row g-3" action="{% url 'seguimiento:delete_proyectousuario' elemento.id %}?next={{object.id}}">
+              {% csrf_token %}
+              <div class="col-auto">
+              <input type="submit" value="X" name="" class="btn btn-danger btn-sm">
+              </div>
+              <div class="col-auto">
+              {{ elemento.usuario }}
+              </div> 
+            </form>
+          </li>
           {% endfor %}
           </ul>
         </div>

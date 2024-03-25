@@ -89,8 +89,7 @@ class Proyecto(models.Model):
         return Proyecto_Fase.objects.filter(proyecto=self).aggregate(max_fase_correlativo=Max('correlativo'))
 
     def get_usuarios(self):
-        usrs = Proyecto_Usuario.objects.filter(proyecto=self).values_list('usuario', flat=True)
-        return Usuario.objects.filter(id__in=usrs)
+        return list(Proyecto_Usuario.objects.filter(proyecto=self))
 
     def url_create():
         return reverse_lazy('seguimiento:create_proyecto')
@@ -113,7 +112,7 @@ class Proyecto_Usuario(models.Model):
     history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self):
-        return self.usuario.username
+        return self.usuario
 
 class Proyecto_Objetivo(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

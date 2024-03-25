@@ -13,6 +13,8 @@ from django.urls import reverse_lazy
 from django_ckeditor_5.fields import CKEditor5Field
 from simple_history.models import HistoricalRecords
 
+from usuarios.models import Usuario
+
 class Estado (models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion  = models.CharField(verbose_name=_('Descripción'), max_length=30, unique=True)
@@ -59,6 +61,11 @@ class Proyecto(models.Model):
     estado  = models.ForeignKey(Estado, verbose_name=_('Estado'), on_delete=models.RESTRICT)
     history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
+    class Meta:
+        permissions = [
+            ("proyect_admin", "Permite ver todos los proyectos, sean publicos o privados")
+        ]
+
     def __str__(self):
         return self.nombre
 
@@ -69,7 +76,8 @@ class Proyecto(models.Model):
             raise ValidationError(_('La fecha de finalización ya pasó'), code='invalid')
 
     def get_resumen(self, max_length=60):
-        return f'{self.descripcion[:max_length]}...'
+        suspensivos = '...' if len(self.descripcion) > max_length else ''
+        return f'{self.descripcion[:max_length].replace("\n", "")}{suspensivos}'
 
     def get_modificable(self):
         '''
@@ -79,6 +87,10 @@ class Proyecto(models.Model):
 
     def get_max_fase(self):
         return Proyecto_Fase.objects.filter(proyecto=self).aggregate(max_fase_correlativo=Max('correlativo'))
+
+    def get_usuarios(self):
+        usrs = Proyecto_Usuario.objects.filter(proyecto=self).values_list('usuario', flat=True)
+        return Usuario.objects.filter(id__in=usrs)
 
     def url_create():
         return reverse_lazy('seguimiento:create_proyecto')
@@ -93,7 +105,15 @@ class Proyecto(models.Model):
         if Proyecto_Fase.objects.filter(proyecto=self).count()>0:
             return None
         return reverse_lazy('seguimiento:delete_proyecto', kwargs={'pk': self.id})
-        
+
+class Proyecto_Usuario(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Usuario'), on_delete=models.RESTRICT)  
+    history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
+
+    def __str__(self):
+        return self.usuario.username
 
 class Proyecto_Objetivo(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -175,7 +195,7 @@ class Proyecto_Fase(models.Model):
         return round(porcentaje, 2)
 
     def get_subtable(self):
-        return Proyecto_Tarea.objects.filter(fase=self).order_by('creacion', '-finalizado')
+        return Proyecto_Tarea.objects.filter(fase=self).order_by('finalizado', 'creacion')
 
     def url_update(self):
         if self.proyecto.get_modificable():
@@ -211,6 +231,10 @@ class Proyecto_Tarea(models.Model):
         if not self.finalizado and self.fase.proyecto.get_modificable():
             return reverse_lazy('seguimiento:delete_proyectotarea', kwargs={'pk': self.id})
         return None
+
+    @property
+    def get_finalizado(self):
+        return _('Finalizado') if self.finalizado else _('')
 
 class Comentario(models.Model):
     id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

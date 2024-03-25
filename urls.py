@@ -19,6 +19,10 @@ urlpatterns = [
     path('proyecto/actualizar/<uuid:pk>', views.ProyectoUpdateView.as_view(), name='update_proyecto'),
     path('proyecto/eliminar/<uuid:pk>', views.ProyectoDeleteView.as_view(), name='delete_proyecto'),
 
+    path('usuario/nuevo/', views.Proyecto_UsuarioFormView.as_view(), name='create_proyectousuario'),
+    path('usuario/eliminar/<uuid:pk>', views.Proyecto_UsuarioDeleteView.as_view(), name='delete_proyectousuario'),
+
+
     path('objetivo/nuevo/', views.Proyecto_ObjetivoFormView.as_view(), name='create_proyectoobjetivo'),
     path('objetivo/actualizar/<uuid:pk>', views.Proyecto_ObjetivoUpdateView.as_view(), name='update_proyectoobjetivo'),
     path('objetivo/eliminar/<uuid:pk>', views.Proyecto_ObjetivoDeleteView.as_view(), name='delete_proyectoobjetivo'),

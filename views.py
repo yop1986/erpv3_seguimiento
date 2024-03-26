@@ -317,16 +317,21 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
+        context['botones_extra'] = [
+            {   
+                'permiso': self.request.user.has_perm('seguimiento.view_comentario'),
+                'url': reverse_lazy('seguimiento:list_comentario', kwargs={'pk': self.object.id}),
+                'display': 'Ver comentarios',
+                'img': 'seguimiento_comentario.png',
+                'target': '_blank',
+            },
+        ]
         context['permisos'] = {
-            'create': self.request.user.has_perm('seguimiento.add_proyecto'),
             'update': self.request.user.has_perm('seguimiento.change_proyecto'),
             'delete': self.request.user.has_perm('seguimiento.delete_proyecto'),
         }
         context['campos_adicionales'] = [
-            {'display': _('Url'), 'enlace_blank': self.object.enlace_cloud },
             {'display': _('Usuarios'), 'ul_lista': self.object.get_usuarios()},
-            {'display': '', 'img': 'seguimiento_comentario.png',
-                'label': _('Ver comentarios'), 'enlace_blank': reverse_lazy('seguimiento:list_comentario', kwargs={'pk': self.object.id})}
         ]
         
         formularios = []

@@ -4,7 +4,23 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-    <h1>{% if title %}{{ title }}:{% endif %} {{ object }}</h1>
+    <div class="row align-items-start">
+      <div class="col-10">
+        <h1>{% if title %}{{ title }}:{% endif %} {{ object }}</h1>
+      </div>
+      <div class="col text-center">
+        
+      {% if botones_extra %}
+      {% for boton in botones_extra %}
+      {% if boton.permiso %}
+      <a href="{{ boton.url }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ boton.display }}" target="{{ boton.target }}">
+        <img src="{% static 'images/' %}{{ boton.img }}" alt="{{ boton.display }}" height="42px">
+      </a>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+    </div>
 
     <div class="container">
     {% for campo in campos.lista %}

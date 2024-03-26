@@ -6,7 +6,7 @@ from django_ckeditor_5.widgets import CKEditor5Widget
 
 from usuarios.models import Usuario
 from .models import (Proyecto, Proyecto_Usuario, Proyecto_Objetivo, 
-    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea)
+    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Comentario)
 
 
 class DateInput(forms.DateInput):
@@ -16,7 +16,7 @@ class DateInput(forms.DateInput):
 class ProyectoForm(forms.ModelForm): 
     class Meta:
         model = Proyecto
-        fields = ('nombre', 'descripcion', 'finicio', 'ffin', 'estado', 'publico')
+        fields = ('nombre', 'descripcion', 'enlace_cloud', 'finicio', 'ffin', 'estado', 'publico')
         widgets = {
             'finicio': DateInput(format='%Y-%m-%d'),
             'ffin': DateInput(format='%Y-%m-%d'),
@@ -121,5 +121,20 @@ class Proyecto_Usuario_ModelForm(forms.ModelForm):
                 self.fields['proyecto'].widget = forms.HiddenInput()
                 usrs = Proyecto_Usuario.objects.filter(proyecto=self.initial['proyecto']).values_list('usuario')
                 self.fields['usuario'].queryset = Usuario.objects.filter(is_active=True).exclude(id__in=usrs)
+        except:
+            pass
+
+class Proyecto_Comentario_ModelForm(forms.ModelForm):
+    class Meta:
+        model = Comentario
+        fields = ['descripcion', 'proyecto']
+        #widgets = {'proyecto': forms.HiddenInput()}
+       
+    def __init__(self, *args, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            if(args and args[0]=='proyecto'):
+                self.fields['proyecto'].queryset = self.fields['proyecto'].queryset.filter(id=self.initial['proyecto'])
+                self.fields['proyecto'].widget = forms.HiddenInput()
         except:
             pass

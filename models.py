@@ -52,6 +52,7 @@ class Proyecto(models.Model):
     nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
     #descripcion = models.TextField(verbose_name=_('Descripción'), blank=True)
     descripcion = CKEditor5Field(verbose_name=_('Descripción'), blank=True, config_name='extends')
+    enlace_cloud= models.URLField(verbose_name=_('URL'), blank=True)
     creacion= models.DateField(_('Creación'), auto_now_add=True)
     actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
     finicio = models.DateField(_('Fecha Inicio'))
@@ -237,9 +238,15 @@ class Proyecto_Tarea(models.Model):
         return _('Finalizado') if self.finalizado else _('')
 
 class Comentario(models.Model):
-    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    TIPO_COMENTARIO =[
+        ('P', _('Proyecto')),
+        ('T', _('Tarea')),
+        ('F', _('Fase')),
+    ]
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = CKEditor5Field(verbose_name=_('Descripción'), blank=True, config_name='extends')
     creacion= models.DateField(_('Creación'), auto_now_add=True)
+    tipo    = models.CharField(_('Tipo'), max_length=1, choices=TIPO_COMENTARIO, default='P')
 
     usuario    = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Usuario'), on_delete=models.RESTRICT)
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)

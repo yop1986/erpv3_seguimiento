@@ -14,7 +14,7 @@ from .models import (Estado, Proyecto, Proyecto_Objetivo, Proyecto_Meta, Proyect
 	Proyecto_Tarea, Proyecto_Usuario, Comentario)
 from .forms import (ProyectoForm, Proyecto_Objetivo_ModelForm, Proyecto_Meta_ModelForm,
     Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelCreateForm, Proyecto_Tarea_ModelUpdateForm,
-    Proyecto_Usuario_ModelForm)
+    Proyecto_Usuario_ModelForm, Proyecto_Comentario_ModelForm)
 
 #gConfiguracion = Configuracion()
 
@@ -290,7 +290,7 @@ class ProyectoCreateView(PersonalCreateView, SeguimientoContextMixin):
     def form_valid(self, form):
         self.object = form.save()
         Proyecto_Usuario(proyecto=self.object, usuario=self.request.user).save()
-        return super().form_valid(form)
+        return redirect('seguimiento:detail_proyecto', pk=self.object.id)
 
 class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
     permission_required = 'seguimiento.view_proyecto'
@@ -323,7 +323,10 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
             'delete': self.request.user.has_perm('seguimiento.delete_proyecto'),
         }
         context['campos_adicionales'] = [
+            {'display': _('Url'), 'enlace_blank': self.object.enlace_cloud },
             {'display': _('Usuarios'), 'ul_lista': self.object.get_usuarios()},
+            {'display': '', 'img': 'seguimiento_comentario.png',
+                'label': _('Ver comentarios'), 'enlace_blank': reverse_lazy('seguimiento:list_comentario', kwargs={'pk': self.object.id})}
         ]
         
         formularios = []
@@ -370,6 +373,15 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'display':  _('Agregar usuario al proyecto'),
                             'link_img': 'seguimiento_add_usuario.png',
                             'form':     Proyecto_Usuario_ModelForm('proyecto', instance=Proyecto_Objetivo(proyecto=self.object)),
+                            'opciones': DISPLAYS['forms'],
+                        })
+        if self.request.user.has_perm('seguimiento.add_comentario'):
+            formularios.append({
+                            'modal':    'comentario', 
+                            'action':   reverse_lazy('seguimiento:create_comentario')+f'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'display':  _('Comentario'),
+                            'link_img': 'seguimiento_comentario_add.png',
+                            'form':     Proyecto_Comentario_ModelForm('proyecto', instance=Comentario(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
         context['forms'] = formularios
@@ -772,3 +784,72 @@ class Proyecto_TareaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
 
 
 
+
+
+
+
+class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.add_comentario'
+    template_name = 'template/forms.html'
+    model = Comentario
+    form_class = Proyecto_Comentario_ModelForm
+    success_url = reverse_lazy('seguimiento:list_proyecto')
+    success_message = _('Comentario agregado correctamente')
+    extra_context = {
+        'title': _('Ingreso de comentario'),
+        'opciones': DISPLAYS['forms'],
+    }
+
+    def get_form_kwargs(self, **kwargs):
+        kwargs = super().get_form_kwargs()
+        redirect = self.request.GET.get('next')
+        if redirect:
+            self.success_url = redirect
+        return kwargs
+
+    def form_valid(self, form, *args, **kwargs):
+        data = form.cleaned_data
+        comentario = Comentario(**data)
+        comentario.usuario = self.request.user
+        comentario.save()
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        for error in form.errors.get("__all__"):
+            messages.error(self.request, error)
+        return redirect(self.success_url)
+
+class ComentarioListView(PersonalListView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.view_comentario'
+    template_name = 'template/list.html'
+    model = Comentario
+    ordering = ['-creacion']
+    paginate_by = 15
+    extra_context = {
+        'campos': {
+            #-1: no enumera
+            # 0: inicia numeración en 0
+            # 1: inicia numeración en 1
+            'enumerar': 1,
+            # Si hay valor se muestra opciones por linea, de lo contrario no se muestran
+            'opciones': _('Opciones'),
+            # Lista de campos que se deben mostrar en la tabla
+            'lista': [
+                'creacion', 'descripcion', 'usuario'
+            ],
+        },
+        'mensaje': {
+            'vacio': DISPLAYS['tabla_vacia'],
+        },
+    }
+
+    def get_context_data(self):
+        context = super().get_context_data()
+        context['title']= Proyecto.objects.get(pk=self.kwargs['pk']).__str__() + ': ' + _('Comentarios')
+        return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        proy = Proyecto.objects.get(pk=self.kwargs['pk'])
+        return Comentario.objects.filter(tipo='P', proyecto=proy)
+        

@@ -22,7 +22,6 @@ urlpatterns = [
     path('usuario/nuevo/', views.Proyecto_UsuarioFormView.as_view(), name='create_proyectousuario'),
     path('usuario/eliminar/<uuid:pk>', views.Proyecto_UsuarioDeleteView.as_view(), name='delete_proyectousuario'),
 
-
     path('objetivo/nuevo/', views.Proyecto_ObjetivoFormView.as_view(), name='create_proyectoobjetivo'),
     path('objetivo/actualizar/<uuid:pk>', views.Proyecto_ObjetivoUpdateView.as_view(), name='update_proyectoobjetivo'),
     path('objetivo/eliminar/<uuid:pk>', views.Proyecto_ObjetivoDeleteView.as_view(), name='delete_proyectoobjetivo'),
@@ -39,6 +38,8 @@ urlpatterns = [
     path('tarea/actualizar/<uuid:pk>', views.Proyecto_TareaUpdateView.as_view(), name='update_proyectotarea'),
     path('tarea/eliminar/<uuid:pk>', views.Proyecto_TareaDeleteView.as_view(), name='delete_proyectotarea'),
 
+    path('comentario/nuevo/', views.Comentario_FormView.as_view(), name='create_comentario'),
+    path('comentario/<uuid:pk>', views.ComentarioListView.as_view(), name='list_comentario'),
 ]
 
 

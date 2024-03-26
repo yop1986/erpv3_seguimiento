@@ -81,6 +81,11 @@ class Proyecto(models.Model):
         resumen = self.descripcion[:max_length].replace("\n", "")
         return f'{resumen}{suspensivos}'
 
+    def get_have_url(self):
+        if self.enlace_cloud:
+            return True
+        return False
+        
     def get_modificable(self):
         '''
             Determina si el estado del proyecto permite modificaciones sobre los objetos dependientes

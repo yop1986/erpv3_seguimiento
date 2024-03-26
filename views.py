@@ -317,15 +317,24 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context['botones_extra'] = [
-            {   
-                'permiso': self.request.user.has_perm('seguimiento.view_comentario'),
+        
+        botones = []
+        if self.request.user.has_perm('seguimiento.view_comentario'):
+            botones.append({   
                 'url': reverse_lazy('seguimiento:list_comentario', kwargs={'pk': self.object.id}),
                 'display': 'Ver comentarios',
                 'img': 'seguimiento_comentario.png',
                 'target': '_blank',
-            },
-        ]
+            })
+        if self.object.get_have_url():
+            botones.append({   
+                'url': self.object.enlace_cloud,
+                'display': 'Cloud',
+                'img': 'seguimiento_cloud.png',
+                'target': '_blank',
+            })
+        context['botones_extra'] = botones
+
         context['permisos'] = {
             'update': self.request.user.has_perm('seguimiento.change_proyecto'),
             'delete': self.request.user.has_perm('seguimiento.delete_proyecto'),

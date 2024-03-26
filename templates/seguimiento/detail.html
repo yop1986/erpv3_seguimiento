@@ -12,14 +12,12 @@
         
       {% if botones_extra %}
       {% for boton in botones_extra %}
-      {% if boton.permiso %}
       <a href="{{ boton.url }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ boton.display }}" target="{{ boton.target }}">
         <img src="{% static 'images/' %}{{ boton.img }}" alt="{{ boton.display }}" height="42px">
       </a>
-      </div>
-      {% endif %}
       {% endfor %}
       {% endif %}
+      </div>
     </div>
 
     <div class="container">

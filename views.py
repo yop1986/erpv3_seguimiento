@@ -306,8 +306,6 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                 'descripcion',
                 'creacion',
                 'actualizacion',
-                'finicio',
-                'ffin',
                 'estado',
                 'publico',
             ],
@@ -340,6 +338,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
             'delete': self.request.user.has_perm('seguimiento.delete_proyecto'),
         }
         context['campos_adicionales'] = [
+            {'display': _('Periodo'), 'valor': self.object.get_periodo()},
             {'display': _('Usuarios'), 'ul_lista': self.object.get_usuarios()},
         ]
         

@@ -207,7 +207,7 @@
           <div class="accordion-body">
             <table class="table">
                 <tbody>
-                  {% for subobj in object.get_subtable %}
+                  {% for subobj in object.get_todas_tareas %}
                   <tr>
                     {% for campo in fases.campos %}
                     <td>{% get_object_value subobj campo %}</td>

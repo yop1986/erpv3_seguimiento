@@ -77,8 +77,6 @@ class Proyecto_Fase_ModelForm(forms.ModelForm):
         except:
             pass
 
-#self.fields['sku'].widget.attrs['disabled'] = 'disabled'
-
 class Proyecto_Tarea_ModelCreateForm(forms.ModelForm):
     class Meta:
         model = Proyecto_Tarea
@@ -99,11 +97,11 @@ class Proyecto_Tarea_ModelUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
         try:
-            self.fields['fase'].disabled = True
-            self.fields['descripcion'].disabled = True
-            self.fields['complejidad'].disabled = True
+            tarea = kwargs['instance']
+            fases = Proyecto_Fase.objects.filter(proyecto=tarea.fase.proyecto)
+            #self.fields['fase'].disabled = True
             #self.fields['descripcion'].widget.attrs["readonly"] = True
-            self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=args[0]).order_by('correlativo')
+            self.fields['fase'].queryset = fases
         except:
             pass
 

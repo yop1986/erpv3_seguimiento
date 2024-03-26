@@ -846,7 +846,7 @@ class ComentarioListView(PersonalListView, SeguimientoContextMixin):
             # 1: inicia numeración en 1
             'enumerar': 1,
             # Si hay valor se muestra opciones por linea, de lo contrario no se muestran
-            'opciones': _('Opciones'),
+            #'opciones': _('Opciones'),
             # Lista de campos que se deben mostrar en la tabla
             'lista': [
                 'creacion', 'descripcion', 'usuario'

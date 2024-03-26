@@ -346,7 +346,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         if self.request.user.has_perm('seguimiento.add_proyecto_objetivo'):
             formularios.append({
                             'modal':    'proyecto_objetivo', 
-                            'action':   reverse_lazy('seguimiento:create_proyectoobjetivo')+f'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectoobjetivo')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Definición de objetivos'),
                             'link_img': 'seguimiento_objetivo_add.png',
                             'form':     Proyecto_Objetivo_ModelForm('proyecto', instance=Proyecto_Objetivo(proyecto=self.object)),
@@ -355,7 +355,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         if self.request.user.has_perm('seguimiento.add_proyecto_meta'):
             formularios.append({
                             'modal':    'proyecto_meta', 
-                            'action':   reverse_lazy('seguimiento:create_proyectometa')+f'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectometa')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Definición de metas'),
                             'link_img': 'seguimiento_meta_add.png',
                             'form':     Proyecto_Meta_ModelForm('proyecto', instance=Proyecto_Meta(proyecto=self.object)),
@@ -364,7 +364,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         if self.request.user.has_perm('seguimiento.add_proyecto_fase'):
             formularios.append({
                             'modal':    'proyecto_fase', 
-                            'action':   reverse_lazy('seguimiento:create_proyectofase')+f'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectofase')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Definición de fases'),
                             'link_img': 'seguimiento_fase_add.png',
                             'form':     Proyecto_Fase_ModelForm('proyecto', instance=Proyecto_Fase(proyecto=self.object)),
@@ -373,7 +373,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         if self.request.user.has_perm('seguimiento.add_proyecto_tarea'):
             formularios.append({
                             'modal':    'proyecto_tarea', 
-                            'action':   reverse_lazy('seguimiento:create_proyectotarea')+f'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectotarea')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Definición de tareas'),
                             'link_img': 'seguimiento_tarea_add.png',
                             'form':     Proyecto_Tarea_ModelCreateForm(self.object),
@@ -382,7 +382,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         if self.request.user.has_perm('seguimiento.proyect_admin'):
             formularios.append({
                             'modal':    'proyecto_usuario', 
-                            'action':   reverse_lazy('seguimiento:create_proyectousuario')+f'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectousuario')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Agregar usuario al proyecto'),
                             'link_img': 'seguimiento_add_usuario.png',
                             'form':     Proyecto_Usuario_ModelForm('proyecto', instance=Proyecto_Objetivo(proyecto=self.object)),
@@ -391,7 +391,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         if self.request.user.has_perm('seguimiento.add_comentario'):
             formularios.append({
                             'modal':    'comentario', 
-                            'action':   reverse_lazy('seguimiento:create_comentario')+f'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_comentario')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Comentario'),
                             'link_img': 'seguimiento_comentario_add.png',
                             'form':     Proyecto_Comentario_ModelForm('proyecto', instance=Comentario(proyecto=self.object)),
@@ -794,10 +794,6 @@ class Proyecto_TareaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
         if redirect:
             self.success_url = redirect
         return kwargs
-
-
-
-
 
 
 

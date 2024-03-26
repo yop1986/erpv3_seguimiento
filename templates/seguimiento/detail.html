@@ -216,13 +216,13 @@
                     <td>
                     {% if fases.permisos_tarea.update and subobj.url_update %}
                       <a href="{{ subobj.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
-                        <img src="{% static 'images/qs_update.png' %}" alt="{{ opciones.update }}" height="25px">
+                        <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
                       </a>
                     {% endif %}
                       
                     {% if fases.permisos_tarea.delete and subobj.url_delete %}
                       <a href="{{ subobj.url_delete }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
-                        <img src="{% static 'images/qs_delete.png' %}" alt="{{ opciones.delete }}" height="25px">
+                        <img src="{% static 'images/seguimiento_delete.png' %}" alt="{{ opciones.delete }}" height="25px">
                       </a>
                     {% endif %}
                     </td>

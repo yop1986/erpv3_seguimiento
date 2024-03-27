@@ -845,7 +845,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'enumerar':     -1,
                             'object_list':  Proyecto_Fase.objects.filter(proyecto=self.object).order_by('correlativo'),
                             'func_extra':   'get_porcentaje_completado',
-                            'campos':       ['descripcion', 'complejidad', 'get_finalizado'], #subtabla
+                            'campos':       ['descripcion', 'get_prioridad', 'complejidad', 'get_finalizado'], #subtabla
                             'permisos_tarea': {
                                 'update':   self.request.user.has_perm('seguimiento.change_proyecto_tarea'),
                                 'delete':   self.request.user.has_perm('seguimiento.delete_proyecto_tarea'),

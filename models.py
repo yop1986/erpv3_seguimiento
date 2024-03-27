@@ -296,7 +296,7 @@ class Proyecto_Fase(models.Model):
     def get_todas_tareas(self):
         tareas_pendientes = Proyecto_Tarea.objects.filter(fase=self, finalizado__lt=100).annotate(custom_order=Value(1))
         tareas_finalizadas= Proyecto_Tarea.objects.filter(fase=self, finalizado=100).annotate(custom_order=Value(0))
-        return tareas_pendientes.union(tareas_finalizadas).order_by('-custom_order', 'creacion')
+        return tareas_pendientes.union(tareas_finalizadas).order_by('-custom_order', '-prioridad', 'creacion')
 
     def url_update(self):
         if self.proyecto.get_modificable():
@@ -344,6 +344,10 @@ class Proyecto_Tarea(models.Model):
     @property
     def get_finalizado(self):
         return f'{self.finalizado}%'
+
+    @property
+    def get_prioridad(self):
+        return self.get_prioridad_display()
 
 class Comentario(models.Model):
     TIPO_COMENTARIO =[

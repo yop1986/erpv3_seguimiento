@@ -50,6 +50,36 @@ class Estado (models.Model):
             return None
         return reverse_lazy('seguimiento:delete_estado', kwargs={'pk': self.id})
 
+class Tipo_Proyecto(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
+    vigente = models.BooleanField(verbose_name=_('Estado'), default=True)
+
+    history = HistoricalRecords(excluded_fields=[], user_model=settings.AUTH_USER_MODEL)
+
+    def __str__(self):
+        return self.nombre
+
+class Origen_Proyecto(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
+    vigente = models.BooleanField(verbose_name=_('Estado'), default=True)
+
+    history = HistoricalRecords(excluded_fields=[], user_model=settings.AUTH_USER_MODEL)
+
+    def __str__(self):
+        return self.nombre
+
+class PM_Proyecto(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
+    vigente = models.BooleanField(verbose_name=_('Estado'), default=True)
+
+    history = HistoricalRecords(excluded_fields=[], user_model=settings.AUTH_USER_MODEL)
+
+    def __str__(self):
+        return self.nombre
+
 class Proyecto(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
@@ -61,7 +91,11 @@ class Proyecto(models.Model):
     ffin    = models.DateField(_('Fecha Fin'))
     publico = models.BooleanField(_('Público'), default=True, help_text=_('Define si el proyecto es visible para todos los usuarios'))
 
+    lider   = models.ForeignKey(Usuario, verbose_name=_('Lider'), blank=True, null=True, on_delete=models.RESTRICT)
     estado  = models.ForeignKey(Estado, verbose_name=_('Estado'), on_delete=models.RESTRICT)
+    tipo    = models.ForeignKey(Tipo_Proyecto, verbose_name=_('Tipo de proyecto'), blank=True, null=True, on_delete=models.RESTRICT)
+    origen  = models.ForeignKey(Origen_Proyecto, verbose_name=_('Origen de proyecto'), blank=True, null=True, on_delete=models.RESTRICT)
+    pm      = models.ForeignKey(PM_Proyecto, verbose_name=_('Project Manager'), blank=True, null=True, on_delete=models.RESTRICT)
     history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     class Meta:
@@ -222,8 +256,14 @@ class Proyecto_Fase(models.Model):
         return None
 
 class Proyecto_Tarea(models.Model):
+    PRIORIDADES = [
+        (10, 'Baja'),
+        (20, 'Media'),
+        (30, 'Alta'),
+    ]
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180, blank=True)
+    prioridad   = models.PositiveSmallIntegerField(default=10, choices=PRIORIDADES)
     complejidad = models.PositiveSmallIntegerField(verbose_name=_('Complejidad'), default=1,
         validators=[ MaxValueValidator(100), MinValueValidator(1) ], help_text=_('Complejidad de 1 a 100'))
     creacion    = models.DateField(_('Creación'), auto_now_add=True)

@@ -299,7 +299,7 @@ class Comentario(models.Model):
     ]
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = CKEditor5Field(verbose_name=_('Descripción'), blank=True, config_name='extends')
-    creacion= models.DateField(_('Creación'), auto_now_add=True)
+    creacion= models.DateTimeField(_('Creación'), auto_now_add=True)
     tipo    = models.CharField(_('Tipo'), max_length=1, choices=TIPO_COMENTARIO, default='P')
     obj_id  = models.CharField(_('Objeto'), max_length=36, default='', blank=True)
 

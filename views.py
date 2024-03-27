@@ -862,5 +862,5 @@ class ComentarioListView(PersonalListView, SeguimientoContextMixin):
     def get_queryset(self):
         queryset = super().get_queryset()
         proy = Proyecto.objects.get(pk=self.kwargs['pk'])
-        return Comentario.objects.filter(tipo='P', proyecto=proy)
+        return Comentario.objects.filter(tipo='P', obj_id=proy.id)
         

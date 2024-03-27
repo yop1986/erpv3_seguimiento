@@ -390,11 +390,13 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                         })
         if self.request.user.has_perm('seguimiento.add_comentario'):
             formularios.append({
-                            'modal':    'comentario', 
+                            'modal':    'comentario',
+                            'tipo':     'P',
+                            'id':       self.object.id,
                             'action':   reverse_lazy('seguimiento:create_comentario')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Comentario'),
                             'link_img': 'seguimiento_comentario_add.png',
-                            'form':     Proyecto_Comentario_ModelForm('proyecto', instance=Comentario(proyecto=self.object)),
+                            'form':     Proyecto_Comentario_ModelForm('proyecto', instance=Comentario(tipo='P', obj_id=self.object.id)),
                             'opciones': DISPLAYS['forms'],
                         })
         context['forms'] = formularios

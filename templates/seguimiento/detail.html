@@ -84,7 +84,7 @@
         <div class="col">
             {% for form in forms %}
               {% if form.action %}
-              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#{{ form.modal }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ form.display }}">
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#{{ form.modal }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ form.display }}" modal="{{ form.modal }}" tipo="{{ form.tipo }}" id="{{ form.id }}">
                 <img src="{% static 'images/' %}{{ form.link_img }}" alt="{{ form.display }}" height="25px">
               </button>
               {% endif %}
@@ -245,4 +245,21 @@
     {% for form in forms %}
       {% include 'template/modal_form.html' %}
     {% endfor %}
+
+
+<script type="text/javascript" src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+<script>
+    $(".btn-primary").mouseenter(function(){
+      var valor = $(this).attr('modal')
+      console.log('Modal' + valor)
+      if (valor == 'comentario'){
+        var id = $(this).attr('obj_id')
+        var tipo = $(this).attr('tipo')
+        //console.log('Antes:' + $('#comentario .modal-body form input#id_tipo').attr('value'))
+        $('#comentario .modal-body form input#obj_id').val(id)
+        $('#comentario .modal-body form input#id_tipo').val(tipo)
+      }
+    });
+</script>
 {% endblock %}
+

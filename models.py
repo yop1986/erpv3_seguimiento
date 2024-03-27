@@ -261,9 +261,9 @@ class Comentario(models.Model):
     descripcion = CKEditor5Field(verbose_name=_('Descripción'), blank=True, config_name='extends')
     creacion= models.DateField(_('Creación'), auto_now_add=True)
     tipo    = models.CharField(_('Tipo'), max_length=1, choices=TIPO_COMENTARIO, default='P')
+    obj_id  = models.CharField(_('Objeto'), max_length=36, default='', blank=True)
 
     usuario    = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Usuario'), on_delete=models.RESTRICT)
-    proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 
     history = HistoricalRecords(excluded_fields=['creacion', 'usuario', 'proyecto'], user_model=settings.AUTH_USER_MODEL)
 

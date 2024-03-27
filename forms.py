@@ -125,14 +125,7 @@ class Proyecto_Usuario_ModelForm(forms.ModelForm):
 class Proyecto_Comentario_ModelForm(forms.ModelForm):
     class Meta:
         model = Comentario
-        fields = ['descripcion', 'proyecto']
-        #widgets = {'proyecto': forms.HiddenInput()}
-       
+        fields = ['descripcion', 'tipo', 'obj_id']
+        widgets = {'tipo': forms.HiddenInput(), 'obj_id': forms.HiddenInput()}
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
-        try:
-            if(args and args[0]=='proyecto'):
-                self.fields['proyecto'].queryset = self.fields['proyecto'].queryset.filter(id=self.initial['proyecto'])
-                self.fields['proyecto'].widget = forms.HiddenInput()
-        except:
-            pass

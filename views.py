@@ -458,6 +458,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             },
                             'opciones':     _('Opciones'),
                             'permisos': {
+                                'comment':   self.request.user.has_perm('seguimiento:add_comentario'),
                                 'update':   self.request.user.has_perm('seguimiento.change_proyecto_fase'),
                                 'delete':   self.request.user.has_perm('seguimiento.delete_proyecto_fase'),
                             },
@@ -849,6 +850,13 @@ class ComentarioListView(PersonalListView, SeguimientoContextMixin):
                 'creacion', 'descripcion', 'usuario'
             ],
         },
+        'campos_extra': [
+            {
+                'nombre':   _('Objeto'), #display
+                # valor, constante o funcion 
+                'funcion': 'get_objeto',  
+            },
+        ],
         'mensaje': {
             'vacio': DISPLAYS['tabla_vacia'],
         },
@@ -862,5 +870,11 @@ class ComentarioListView(PersonalListView, SeguimientoContextMixin):
     def get_queryset(self):
         queryset = super().get_queryset()
         proy = Proyecto.objects.get(pk=self.kwargs['pk'])
-        return Comentario.objects.filter(tipo='P', obj_id=proy.id)
+        fases= Proyecto_Fase.objects.filter(proyecto = proy).values_list('id')
+        tareas = Proyecto_Tarea.objects.filter(fase__in=fases).values_list('id')
+        comentarios = (Comentario.objects.filter(tipo='P', obj_id=proy.id) | 
+            Comentario.objects.filter(tipo='F', obj_id__in=fases) |
+            Comentario.objects.filter(tipo='T', obj_id__in=tareas)).order_by('-creacion')
+
+        return comentarios
         

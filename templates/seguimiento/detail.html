@@ -84,7 +84,7 @@
         <div class="col">
             {% for form in forms %}
               {% if form.action %}
-              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#{{ form.modal }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ form.display }}" modal="{{ form.modal }}" tipo="{{ form.tipo }}" id="{{ form.id }}">
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#{{ form.modal }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ form.display }}" modal="{{ form.modal }}" tipo="{{ form.tipo }}" obj_id="{{ form.id }}">
                 <img src="{% static 'images/' %}{{ form.link_img }}" alt="{{ form.display }}" height="25px">
               </button>
               {% endif %}
@@ -185,35 +185,44 @@
   {% if fases %}
   <div class="row">
     <div class="accordion" id="accordionFases">
-      {% for object in fases.object_list %}
+      {% for fase_object in fases.object_list %}
       <div class="accordion-item">
         <h2 class="accordion-header" id="headingOne">
           <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{forloop.counter}}" aria-expanded="true" aria-controls="collapse{{forloop.counter}}">
-            {% if fases.permisos.update and object.url_update %}
-              <a href="{{ object.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
+            {% if fases.permisos.comment %}
+            <a href="#" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Comentario" tipo="F" obj_id="{{ fase_object.id }}">
+              <img src="{% static 'images/seguimiento_comentario_add.png' %}" alt="Comentario" height="25px" data-bs-toggle="modal" data-bs-target="#comentario" data-bs-toggle="tooltip" data-bs-placement="top" modal="comentario" >
+            </a>
+            {% endif %}
+            {% if fases.permisos.update and fase_object.url_update %}
+              <a href="{{ fase_object.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
                 <img src="{% static 'images/qs_update.png' %}" alt="{{ opciones.update }}" height="25px">
               </a>
             {% endif %}
-              
-            {% if fases.permisos.delete and object.url_delete %}
-              <a href="{{ object.url_delete }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
+            {% if fases.permisos.delete and fase_object.url_delete %}
+              <a href="{{ fase_object.url_delete }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
                 <img src="{% static 'images/qs_delete.png' %}" alt="{{ opciones.delete }}" height="25px">
               </a>
             {% endif %} 
-            {{ object }} ({% get_object_funcvalue object fases.func_extra %} %)
+            {{ fase_object }} ({% get_object_funcvalue fase_object fases.func_extra %} %)
           </button>
         </h2>
         <div id="collapse{{forloop.counter}}" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
           <div class="accordion-body">
             <table class="table">
                 <tbody>
-                  {% for subobj in object.get_todas_tareas %}
+                  {% for subobj in fase_object.get_todas_tareas %}
                   <tr>
                     {% for campo in fases.campos %}
                     <td>{% get_object_value subobj campo %}</td>
                     {% endfor %}
 
                     <td>
+                    {% if fases.permisos.comment %}
+                      <a href="#" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Comentario" tipo="T" obj_id="{{ subobj.id }}">
+                        <img src="{% static 'images/seguimiento_comentario_add.png' %}" alt="Comentario" height="25px" data-bs-toggle="modal" data-bs-target="#comentario" data-bs-toggle="tooltip" data-bs-placement="top" modal="comentario" >
+                      </a>
+                    {% endif %}
                     {% if fases.permisos_tarea.update and subobj.url_update %}
                       <a href="{{ subobj.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
                         <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
@@ -250,16 +259,14 @@
 <script type="text/javascript" src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
 <script>
     $(".btn-primary").mouseenter(function(){
-      var valor = $(this).attr('modal')
-      console.log('Modal' + valor)
-      if (valor == 'comentario'){
+      var valor = $(this).attr('title')
+      if (valor == 'Comentario'){
         var id = $(this).attr('obj_id')
         var tipo = $(this).attr('tipo')
-        //console.log('Antes:' + $('#comentario .modal-body form input#id_tipo').attr('value'))
-        $('#comentario .modal-body form input#obj_id').val(id)
+        //console.log('tipo >> objeto: '+tipo+' >> '+ id)
+        $('#comentario .modal-body form input#id_obj_id').val(id)
         $('#comentario .modal-body form input#id_tipo').val(tipo)
       }
     });
 </script>
 {% endblock %}
-

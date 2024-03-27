@@ -308,4 +308,14 @@ class Comentario(models.Model):
     history = HistoricalRecords(excluded_fields=['creacion', 'usuario', 'proyecto'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
-        return f'{self.descripcion}'
+        return f'({ objeto }) { self.descripcion }'
+
+    def get_objeto(self):
+        if self.tipo == 'P':
+            return _('Proyecto: ') + f'{Proyecto.objects.get(id = self.obj_id)}'
+        elif self.tipo == 'F':
+            return _('Fase: ') + f'{Proyecto_Fase.objects.get(id = self.obj_id)}'
+        elif self.tipo == 'T':
+            return _('Tarea: ') + f'{Proyecto_Tarea.objects.get(id = self.obj_id)}'
+        else:
+            return None

@@ -60,6 +60,23 @@ class Tipo_Proyecto(models.Model):
     def __str__(self):
         return self.nombre
 
+    def get_vigente(self):
+        return _('Si') if self.vigente else _('No')
+
+    def url_create():
+        return reverse_lazy('seguimiento:create_tipo_proyecto')
+
+    def url_detail(self):
+        return reverse_lazy('seguimiento:detail_tipo_proyecto', kwargs={'pk': self.id})
+
+    def url_update(self):
+        return reverse_lazy('seguimiento:update_tipo_proyecto', kwargs={'pk': self.id})
+
+    def url_delete(self):
+        if Proyecto.objects.filter(tipo=self).count()>0:
+            return None
+        return reverse_lazy('seguimiento:delete_tipo_proyecto', kwargs={'pk': self.id})
+
 class Origen_Proyecto(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
@@ -70,6 +87,23 @@ class Origen_Proyecto(models.Model):
     def __str__(self):
         return self.nombre
 
+    def get_vigente(self):
+        return _('Si') if self.vigente else _('No')
+
+    def url_create():
+        return reverse_lazy('seguimiento:create_origen_proyecto')
+
+    def url_detail(self):
+        return reverse_lazy('seguimiento:detail_origen_proyecto', kwargs={'pk': self.id})
+
+    def url_update(self):
+        return reverse_lazy('seguimiento:update_origen_proyecto', kwargs={'pk': self.id})
+
+    def url_delete(self):
+        if Proyecto.objects.filter(origen=self).count()>0:
+            return None
+        return reverse_lazy('seguimiento:delete_origen_proyecto', kwargs={'pk': self.id})
+
 class PM_Proyecto(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
@@ -79,6 +113,23 @@ class PM_Proyecto(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    def get_vigente(self):
+        return _('Si') if self.vigente else _('No')
+
+    def url_create():
+        return reverse_lazy('seguimiento:create_pm_proyecto')
+
+    def url_detail(self):
+        return reverse_lazy('seguimiento:detail_pm_proyecto', kwargs={'pk': self.id})
+
+    def url_update(self):
+        return reverse_lazy('seguimiento:update_pm_proyecto', kwargs={'pk': self.id})
+
+    def url_delete(self):
+        if Proyecto.objects.filter(pm=self).count()>0:
+            return None
+        return reverse_lazy('seguimiento:delete_pm_proyecto', kwargs={'pk': self.id})
 
 class Proyecto(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -111,6 +162,9 @@ class Proyecto(models.Model):
             raise ValidationError(_('La fecha de inicio debe ser menor a fecha de finalización'), code='invalid')
         if self.ffin < date.today():
             raise ValidationError(_('La fecha de finalización ya pasó'), code='invalid')
+
+    def get_tipo_permiso(self):
+        return _('Público') if self.publico else _('Privado')
 
     def get_periodo(self):
         formato = conf.get_value('sitio', 'formato_fecha')

@@ -8,13 +8,31 @@ urlpatterns = [
     path('', views.IndexTemplateView.as_view(), name='index'),
 
     path('estado/', views.EstadoListView.as_view(), name='list_estado'),
-    path('estado/nueva/', views.EstadoCreateView.as_view(), name='create_estado'),
+    path('estado/nuevo/', views.EstadoCreateView.as_view(), name='create_estado'),
     path('estado/ver/<uuid:pk>', views.EstadoDetailView.as_view(), name='detail_estado'),
     path('estado/actualizar/<uuid:pk>', views.EstadoUpdateView.as_view(), name='update_estado'),
     path('estado/eliminar/<uuid:pk>', views.EstadoDeleteView.as_view(), name='delete_estado'),
 
+    path('tipo/', views.Tipo_ProyectoListView.as_view(), name='list_tipo_proyecto'),
+    path('tipo/nuevo/', views.Tipo_ProyectoCreateView.as_view(), name='create_tipo_proyecto'),
+    path('tipo/ver/<uuid:pk>', views.Tipo_ProyectoDetailView.as_view(), name='detail_tipo_proyecto'),
+    path('tipo/actualizar/<uuid:pk>', views.Tipo_ProyectoUpdateView.as_view(), name='update_tipo_proyecto'),
+    path('tipo/eliminar/<uuid:pk>', views.Tipo_ProyectoDeleteView.as_view(), name='delete_tipo_proyecto'),
+
+    path('origen/', views.Origen_ProyectoListView.as_view(), name='list_origen_proyecto'),
+    path('origen/nuevo/', views.Origen_ProyectoCreateView.as_view(), name='create_origen_proyecto'),
+    path('origen/ver/<uuid:pk>', views.Origen_ProyectoDetailView.as_view(), name='detail_origen_proyecto'),
+    path('origen/actualizar/<uuid:pk>', views.Origen_ProyectoUpdateView.as_view(), name='update_origen_proyecto'),
+    path('origen/eliminar/<uuid:pk>', views.Origen_ProyectoDeleteView.as_view(), name='delete_origen_proyecto'),
+
+    path('pm/', views.PM_ProyectoListView.as_view(), name='list_pm_proyecto'),
+    path('pm/nuevo/', views.PM_ProyectoCreateView.as_view(), name='create_pm_proyecto'),
+    path('pm/ver/<uuid:pk>', views.PM_ProyectoDetailView.as_view(), name='detail_pm_proyecto'),
+    path('pm/actualizar/<uuid:pk>', views.PM_ProyectoUpdateView.as_view(), name='update_pm_proyecto'),
+    path('pm/eliminar/<uuid:pk>', views.PM_ProyectoDeleteView.as_view(), name='delete_pm_proyecto'),
+
     path('proyecto/', views.ProyectoListView.as_view(), name='list_proyecto'),
-    path('proyecto/nueva/', views.ProyectoCreateView.as_view(), name='create_proyecto'),
+    path('proyecto/nuevo/', views.ProyectoCreateView.as_view(), name='create_proyecto'),
     path('proyecto/ver/<uuid:pk>', views.ProyectoDetailView.as_view(), name='detail_proyecto'),
     path('proyecto/actualizar/<uuid:pk>', views.ProyectoUpdateView.as_view(), name='update_proyecto'),
     path('proyecto/eliminar/<uuid:pk>', views.ProyectoDeleteView.as_view(), name='delete_proyecto'),

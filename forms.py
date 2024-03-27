@@ -16,7 +16,8 @@ class DateInput(forms.DateInput):
 class ProyectoForm(forms.ModelForm): 
     class Meta:
         model = Proyecto
-        fields = ('nombre', 'descripcion', 'enlace_cloud', 'finicio', 'ffin', 'estado', 'publico')
+        fields = ('nombre', 'descripcion', 'enlace_cloud', 'finicio', 'ffin', 
+            'lider', 'tipo', 'origen', 'pm', 'estado', 'publico')
         widgets = {
             'finicio': DateInput(format='%Y-%m-%d'),
             'ffin': DateInput(format='%Y-%m-%d'),
@@ -29,6 +30,10 @@ class ProyectoForm(forms.ModelForm):
         super().__init__(**kwargs)
         try:
             self.fields['estado'].queryset = self.fields['estado'].queryset.filter(vigente=True)
+            self.fields['tipo'].queryset = self.fields['tipo'].queryset.filter(vigente=True)
+            self.fields['origen'].queryset = self.fields['origen'].queryset.filter(vigente=True)
+            self.fields['pm'].queryset = self.fields['pm'].queryset.filter(vigente=True)
+            self.fields['lider'].queryset = self.fields['lider'].queryset.filter(is_active=True)
         except:
             pass
 

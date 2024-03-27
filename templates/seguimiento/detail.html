@@ -161,13 +161,13 @@
               <th scope="col">
                 {% if table.permisos.update and object.url_update %}
                 <a href="{{ object.url_update }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
-                  <img src="{% static 'images/qs_update.png' %}" alt="{{ opciones.update }}" height="25px">
+                  <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
                 </a>
                 {% endif %}
                 
                 {% if table.permisos.delete and object.url_delete %}
                 <a href="{{ object.url_delete }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
-                  <img src="{% static 'images/qs_delete.png' %}" alt="{{ opciones.delete }}" height="25px">
+                  <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.delete }}" height="25px">
                 </a>
                 {% endif %}
               </th>
@@ -188,7 +188,7 @@
       {% for fase_object in fases.object_list %}
       <div class="accordion-item">
         <h2 class="accordion-header" id="headingOne">
-          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{forloop.counter}}" aria-expanded="true" aria-controls="collapse{{forloop.counter}}">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{forloop.counter}}" aria-expanded="false" aria-controls="collapse{{forloop.counter}}">
             {% if fases.permisos.comment %}
             <a href="#" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Comentario" tipo="F" obj_id="{{ fase_object.id }}">
               <img src="{% static 'images/seguimiento_comentario_add.png' %}" alt="Comentario" height="25px" data-bs-toggle="modal" data-bs-target="#comentario" data-bs-toggle="tooltip" data-bs-placement="top" modal="comentario" >
@@ -196,17 +196,17 @@
             {% endif %}
             {% if fases.permisos.update and fase_object.url_update %}
               <a href="{{ fase_object.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
-                <img src="{% static 'images/qs_update.png' %}" alt="{{ opciones.update }}" height="25px">
+                <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
               </a>
             {% endif %}
             {% if fases.permisos.delete and fase_object.url_delete %}
               <a href="{{ fase_object.url_delete }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
-                <img src="{% static 'images/qs_delete.png' %}" alt="{{ opciones.delete }}" height="25px">
+                <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.delete }}" height="25px">
               </a>
             {% endif %} 
             {{ fase_object }} ({% get_object_funcvalue fase_object fases.func_extra %} %)
-          </button>
-        </h2>
+        </button>
+      </h2>
         <div id="collapse{{forloop.counter}}" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
           <div class="accordion-body">
             <table class="table">

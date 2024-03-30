@@ -1,6 +1,9 @@
+from datetime import date
+
 from django.apps import apps
 from django.contrib import messages
 from django.db.models import Q
+
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext as _
@@ -761,6 +764,9 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             },
                             'next':         self.object.url_detail(),
                         }
+
+        if self.object.ffin < date.today():
+            messages.add_message(self.request, messages.WARNING, _('Proyecto expiró'))
         return context
 
 class ProyectoUpdateView(PersonalUpdateView, SeguimientoContextMixin):

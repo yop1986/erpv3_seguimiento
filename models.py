@@ -1,5 +1,4 @@
 import uuid
-from datetime import date
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -160,9 +159,7 @@ class Proyecto(models.Model):
     def clean(self):
         errores = []
         if (self.finicio >= self.ffin):
-            errores.append(_('La fecha de inicio debe ser menor a fecha de finalización'))
-        if self.ffin < date.today():
-            errores.append(_('El proyecto ha expirado'))
+            errores.append(ValidationError(_('La fecha de inicio debe ser menor a fecha de finalización'), code='fecha_invalida'))
         if errores:
             raise ValidationError(errores)
 

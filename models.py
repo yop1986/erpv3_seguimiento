@@ -158,10 +158,13 @@ class Proyecto(models.Model):
         return self.nombre
 
     def clean(self):
+        errores = []
         if (self.finicio >= self.ffin):
-            raise ValidationError(_('La fecha de inicio debe ser menor a fecha de finalización'), code='invalid')
+            errores.append(_('La fecha de inicio debe ser menor a fecha de finalización'))
         if self.ffin < date.today():
-            raise ValidationError(_('La fecha de finalización ya pasó'), code='invalid')
+            errores.append(_('El proyecto ha expirado'))
+        if errores:
+            raise ValidationError(errores)
 
     def get_tipo_permiso(self):
         return _('Público') if self.publico else _('Privado')

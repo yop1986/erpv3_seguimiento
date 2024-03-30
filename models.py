@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -188,7 +189,7 @@ class Proyecto(models.Model):
         '''
             Determina si el estado del proyecto permite modificaciones sobre los objetos dependientes
         '''
-        return not self.estado.bloquea
+        return not self.ffin < date.today() and not self.estado.bloquea
 
     def get_usuarios(self):
         return list(Proyecto_Usuario.objects.filter(proyecto=self))

@@ -12,9 +12,11 @@
         
       {% if botones_extra %}
       {% for boton in botones_extra %}
-      <a href="{{ boton.url }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ boton.display }}" target="{{ boton.target }}">
+      {% if boton.permiso %}
+      <a href="{{ boton.url }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ boton.display }}" {% if boton.target %}target="{{ boton.target }}"{% endif %}>
         <img src="{% static 'images/' %}{{ boton.img }}" alt="{{ boton.display }}" height="42px">
       </a>
+      {% endif %}
       {% endfor %}
       {% endif %}
       </div>
@@ -32,19 +34,21 @@
       </div>
     {% endfor %}
 
-    {% for campo in campos_adicionales %}
+    {% for extra in campos_extra %}
       <div class="row">
         <div class="col">
-          <strong>{{ campo.display }}</strong>
+          <strong>{{ extra.nombre }}</strong>
         </div>
-        {% if 'valor' in campo %}
-        <div class="col"> {{ campo.valor }}</div>
-        {% elif 'ul_lista' in campo %}
-        <div class="col"> 
+        <div class="col">
+        {% if extra.valor %}
+         {% get_object_value object extra.valor %}
+        {% elif extra.funcion %}
+          {% get_object_funcvalue object extra.funcion %}
+        {% elif extra.ul_lista %}
           <ul>
-          {% for elemento in campo.ul_lista %}
+          {% for elemento in extra.ul_lista %}
           <li> 
-            <form class="row g-3" action="{% url 'seguimiento:delete_proyectousuario' elemento.id %}?next={{object.id}}">
+            <form class="row g-3" action="{% url 'seguimiento:delete_proyectousuario' elemento.id %}?next={{ object.id }}">
               {% csrf_token %}
               <div class="col-auto">
               <input type="submit" value="X" name="" class="btn btn-danger btn-sm">
@@ -56,22 +60,9 @@
           </li>
           {% endfor %}
           </ul>
-        </div>
-        {% elif 'enlace_blank' in campo  %}
-        <div class="col">
-          <a href="{{ campo.enlace_blank }}" target="_blank" class="btn btn-light">
-            {% if 'img' in campo %}
-              <img src="{% static 'images/' %}{{ campo.img }}" alt="{{ campo.label }}">
-            {% elif 'label' in campo %}
-              {{ campo.label }}
-            {% else %}
-              {{ campo.enlace_blank }}
-            {% endif %}
-          </a>
-        </div>
-        {% else %}
-        {{ campo }}
+          {{ extra.constante }}
         {% endif %}
+        </div>
       </div>
     {% endfor %}
 
@@ -116,12 +107,12 @@
               <th scope="col">#</th>
               {% endif %}
 
-              {% for campo in table.campos %}
+              {% for campo in table.lista %}
                 <th scope="col">{% get_verbose_field_name table.object_list.0 campo %}</th>
               {% endfor %}
 
-              {% for campo in table.campos_extra %}
-                <th scope="col">{{ campo.nombre }}</th>
+              {% for extra in table.campos_extra %}
+                <th scope="col">{{ extra.nombre }}</th>
               {% endfor %}
 
               {% if table.opciones %}
@@ -143,17 +134,17 @@
               </th>
               {% endif %}
 
-              {% for campo in table.campos %}
+              {% for campo in table.lista %}
               <td>{% get_object_value object campo %}</td>
               {% endfor %}
 
-              {% for campo in table.campos_extra %}
-              {% if campo.value %}
-              <td>{% get_object_value object campo %}</td>
-              {% elif campo.funcion %}
-              <td>{% get_object_funcvalue object campo.funcion %}</th>
+              {% for extra in table.campos_extra %}
+              {% if extra.value %}
+              <td>{% get_object_value object extra %}</td>
+              {% elif extra.funcion %}
+              <td>{% get_object_funcvalue object extra.funcion %}</th>
               {% else%}
-              <td>{{ campo.constante }}</td>
+              <td>{{ extra.constante }}</td>
               {% endif %}
               {% endfor %}
 
@@ -161,13 +152,13 @@
               <th scope="col">
                 {% if table.permisos.update and object.url_update %}
                 <a href="{{ object.url_update }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
-                  <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
+                  <img src="{% static 'images/' %}{{ opciones.update_img}}" alt="{{ opciones.update }}" height="25px">
                 </a>
                 {% endif %}
                 
                 {% if table.permisos.delete and object.url_delete %}
                 <a href="{{ object.url_delete }}{% if table.next %}?next={{ table.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
-                  <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.delete }}" height="25px">
+                  <img src="{% static 'images/' %}{{ opciones.delete_img }}" alt="{{ opciones.delete }}" height="25px">
                 </a>
                 {% endif %}
               </th>
@@ -196,12 +187,12 @@
             {% endif %}
             {% if fases.permisos.update and fase_object.url_update %}
               <a href="{{ fase_object.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
-                <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
+                <img src="{% static 'images/' %}{{ opciones.update_img}}" alt="{{ opciones.update }}" height="25px">
               </a>
             {% endif %}
             {% if fases.permisos.delete and fase_object.url_delete %}
               <a href="{{ fase_object.url_delete }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
-                <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.delete }}" height="25px">
+                <img src="{% static 'images/' %}{{ opciones.delete_img}}" alt="{{ opciones.delete }}" height="25px">
               </a>
             {% endif %} 
             {{ fase_object }} ({% get_object_funcvalue fase_object fases.func_extra %} %)
@@ -209,7 +200,7 @@
       </h2>
         <div id="collapse{{forloop.counter}}" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
           <div class="accordion-body">
-            <table class="table">
+            <table class="table table-striped">
                 <tbody>
                   {% for subobj in fase_object.get_todas_tareas %}
                   <tr>
@@ -217,7 +208,7 @@
                     <td>{% get_object_value subobj campo %}</td>
                     {% endfor %}
 
-                    <td>
+                    <td class="col-2">
                     {% if fases.permisos.comment %}
                       <a href="#" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Comentario" tipo="T" obj_id="{{ subobj.id }}">
                         <img src="{% static 'images/seguimiento_comentario_add.png' %}" alt="Comentario" height="25px" data-bs-toggle="modal" data-bs-target="#comentario" data-bs-toggle="tooltip" data-bs-placement="top" modal="comentario" >

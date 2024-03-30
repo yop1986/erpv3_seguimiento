@@ -28,11 +28,6 @@ DISPLAYS = {
         'submit': _('Eliminar'),
         'cancel': _('Cancelar'),
     },
-#    'disable_form': {
-#        'confirmacion': _('¿Esta seguro de inhabilitar el elemento indicado?'),
-#        'submit': _('Inhabilitar'),
-#        'cancel': _('Cancelar'),
-#    },
     'opciones': {
         'detail': _('Ver'),
         'detail_img': 'seguimiento_detail.png',
@@ -95,36 +90,24 @@ class EstadoListView(PersonalListView, SeguimientoContextMixin):
     paginate_by = 10
     extra_context = {
         'title': _('Estados'),
+        'create' :{
+            'display':  _('Nuevo'),
+            'url':      Estado.url_create(),
+            'img':      'seguimiento_add.png',
+        },
         'campos': {
-            #-1: no enumera
-            # 0: inicia numeración en 0
-            # 1: inicia numeración en 1
             'enumerar': 1,
-            # Si hay valor se muestra opciones por linea, de lo contrario no se muestran
-            'opciones': _('Opciones'),
-            # Lista de campos que se deben mostrar en la tabla
             'lista': [
                 'descripcion', 
                 'actualizacion', 
             ],
+            'opciones': _('Opciones'),
         },
         'campos_extra': [
-            {   
-                'nombre': _('Bloquea'),
-                'funcion': 'get_bloquea',
-            },
-            {
-                'nombre':   _('Vigente'), #display
-                # valor, constante o funcion 
-                'funcion': 'get_vigente',  
-            },
-            
+            { 'nombre': _('Bloquea'), 'funcion': 'get_bloquea' },
+            { 'nombre':   _('Vigente'), 'funcion': 'get_vigente' },
         ],
         'opciones': DISPLAYS['opciones'],
-        'create' :{
-            'display':  _('Nuevo'),
-            'url':      Estado.url_create(),
-        },
         'mensaje': {
             'vacio': DISPLAYS['tabla_vacia'],
         },
@@ -158,35 +141,30 @@ class EstadoDetailView(PersonalDetailView, SeguimientoContextMixin):
     extra_context = {
         'title': _('Estado'),
         'campos': {
+            'lista': [ 'descripcion', 'actualizacion', ],
             'opciones': _('Opciones'),
-            'lista': [
-                #'id',
-                'descripcion', 
-                'actualizacion', 
-            ],
         },
+        'campos_extra': [ 
+            {'nombre':   _('Bloquea'), 'funcion': 'get_bloquea'},
+            {'nombre': _('Vigente'), 'funcion': 'get_vigente'},
+        ],
         'opciones': DISPLAYS['opciones'],
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['permisos'] = {
-            'create': self.request.user.has_perm('seguimiento.add_estado'),
             'update': self.request.user.has_perm('seguimiento.change_estado'),
             'delete': self.request.user.has_perm('seguimiento.delete_estado'),
         }
-        context['campos_adicionales'] = [ 
-            {'display': _('Bloquea'), 'valor': self.object.get_bloquea()},
-            {'display': _('Vigente'), 'valor': self.object.get_vigente()},
-        ]
         
         if self.request.user.has_perm('seguimiento.view_proyecto'):   
             context['tables'] = [
                 {
                     'title':        _('Proyectos'),
-                    'enumerar':     1,
                     'object_list':  Proyecto.objects.filter(estado=self.object).order_by('actualizacion'),
-                    'campos':       ['nombre', 'actualizacion'],
+                    'enumerar':     1,
+                    'lista':       ['nombre', 'actualizacion'],
                     'opciones':     _('Opciones'),
                     'permisos': {
                         'update':   self.request.user.has_perm('seguimiento.change_proyecto'),
@@ -230,29 +208,22 @@ class Tipo_ProyectoListView(PersonalListView, SeguimientoContextMixin):
     paginate_by = 10
     extra_context = {
         'title': _('Tipo de proyecto'),
+        'create' :{
+            'url':      Tipo_Proyecto.url_create(),
+            'display':  _('Nuevo'),
+            'img':      'seguimiento_add.png',
+        },
         'campos': {
-            #-1: no enumera
-            # 0: inicia numeración en 0
-            # 1: inicia numeración en 1
             'enumerar': 1,
-            # Si hay valor se muestra opciones por linea, de lo contrario no se muestran
-            'opciones': _('Opciones'),
-            # Lista de campos que se deben mostrar en la tabla
             'lista': [
                 'nombre', 
             ],
+            'opciones': _('Opciones'),
         },
         'campos_extra': [
-            {   'nombre':   _('Vigente'), #display # valor, constante o funcion 
-                'funcion': 'get_vigente',  
-            },
-            
+            { 'nombre':   _('Vigente'), 'funcion': 'get_vigente', },
         ],
         'opciones': DISPLAYS['opciones'],
-        'create' :{
-            'display':  _('Nuevo'),
-            'url':      Tipo_Proyecto.url_create(),
-        },
         'mensaje': {
             'vacio': DISPLAYS['tabla_vacia'],
         },
@@ -286,12 +257,12 @@ class Tipo_ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
     extra_context = {
         'title': _('Tipo de proyecto'),
         'campos': {
+            'lista': [ 'nombre', ],
             'opciones': _('Opciones'),
-            'lista': [
-                #'id',
-                'nombre', 
-            ],
         },
+        'campos_extra': [
+            { 'nombre': _('Vigente'), 'funcion': 'get_vigente' },
+        ],
         'opciones': DISPLAYS['opciones'],
     }
 
@@ -302,17 +273,14 @@ class Tipo_ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
             'update': self.request.user.has_perm('seguimiento.change_tipo_proyecto'),
             'delete': self.request.user.has_perm('seguimiento.delete_tipo_proyecto'),
         }
-        context['campos_adicionales'] = [ 
-            {'display': _('Vigente'), 'valor': self.object.get_vigente()},
-        ]
         
         if self.request.user.has_perm('seguimiento.view_proyecto'):   
             context['tables'] = [
                 {
                     'title':        _('Proyectos'),
-                    'enumerar':     1,
                     'object_list':  Proyecto.objects.filter(tipo=self.object).order_by('actualizacion'),
-                    'campos':       ['nombre', 'actualizacion'],
+                    'enumerar':     1,
+                    'lista':       [ 'nombre', 'actualizacion', ],
                     'opciones':     _('Opciones'),
                     'permisos': {
                         'update':   self.request.user.has_perm('seguimiento.change_proyecto'),
@@ -356,31 +324,21 @@ class Origen_ProyectoListView(PersonalListView, SeguimientoContextMixin):
     paginate_by = 10
     extra_context = {
         'title': _('Origen de proyectos'),
+        'create' :{
+            'url':      Origen_Proyecto.url_create(),
+            'display':  _('Nuevo'),
+            'img':      'seguimiento_add.png',
+        },
         'campos': {
-            #-1: no enumera
-            # 0: inicia numeración en 0
-            # 1: inicia numeración en 1
             'enumerar': 1,
-            # Si hay valor se muestra opciones por linea, de lo contrario no se muestran
+            'lista': [ 'nombre', ],
             'opciones': _('Opciones'),
-            # Lista de campos que se deben mostrar en la tabla
-            'lista': [
-                'nombre'
-            ],
         },
         'campos_extra': [
-            {
-                'nombre':   _('Vigente'), #display
-                # valor, constante o funcion 
-                'funcion': 'get_vigente',  
-            },
+            { 'nombre':   _('Vigente'), 'funcion': 'get_vigente', },
             
         ],
         'opciones': DISPLAYS['opciones'],
-        'create' :{
-            'display':  _('Nuevo'),
-            'url':      Origen_Proyecto.url_create(),
-        },
         'mensaje': {
             'vacio': DISPLAYS['tabla_vacia'],
         },
@@ -414,33 +372,29 @@ class Origen_ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
     extra_context = {
         'title': _('Origen de proyecto'),
         'campos': {
+            'lista': [ 'nombre', ],
             'opciones': _('Opciones'),
-            'lista': [
-                #'id',
-                'nombre',
-            ],
         },
+        'campos_extra': [ 
+            { 'nombre': _('Vigente'), 'funcion': 'get_vigente'},
+        ],
         'opciones': DISPLAYS['opciones'],
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['permisos'] = {
-            'create': self.request.user.has_perm('seguimiento.add_origen_proyecto'),
             'update': self.request.user.has_perm('seguimiento.change_origen_proyecto'),
             'delete': self.request.user.has_perm('seguimiento.delete_origen_proyecto'),
         }
-        context['campos_adicionales'] = [ 
-            {'display': _('Vigente'), 'valor': self.object.get_vigente()},
-        ]
         
         if self.request.user.has_perm('seguimiento.view_proyecto'):   
             context['tables'] = [
                 {
                     'title':        _('Proyectos'),
-                    'enumerar':     1,
                     'object_list':  Proyecto.objects.filter(origen=self.object).order_by('actualizacion'),
-                    'campos':       ['nombre', 'actualizacion'],
+                    'enumerar':     1,
+                    'lista':        ['nombre', 'actualizacion'],
                     'opciones':     _('Opciones'),
                     'permisos': {
                         'update':   self.request.user.has_perm('seguimiento.change_proyecto'),
@@ -484,31 +438,20 @@ class PM_ProyectoListView(PersonalListView, SeguimientoContextMixin):
     paginate_by = 10
     extra_context = {
         'title': _('Project Manager'),
+        'create' :{
+            'url':      PM_Proyecto.url_create(),
+            'display':  _('Nuevo'),
+            'img':      'seguimiento_add.png',
+        },
         'campos': {
-            #-1: no enumera
-            # 0: inicia numeración en 0
-            # 1: inicia numeración en 1
             'enumerar': 1,
-            # Si hay valor se muestra opciones por linea, de lo contrario no se muestran
+            'lista': [ 'nombre', ],
             'opciones': _('Opciones'),
-            # Lista de campos que se deben mostrar en la tabla
-            'lista': [
-                'nombre'
-            ],
         },
         'campos_extra': [
-            {
-                'nombre':   _('Vigente'), #display
-                # valor, constante o funcion 
-                'funcion': 'get_vigente',  
-            },
-            
+            { 'nombre':   _('Vigente'), 'funcion': 'get_vigente', },
         ],
         'opciones': DISPLAYS['opciones'],
-        'create' :{
-            'display':  _('Nuevo'),
-            'url':      PM_Proyecto.url_create(),
-        },
         'mensaje': {
             'vacio': DISPLAYS['tabla_vacia'],
         },
@@ -542,33 +485,29 @@ class PM_ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
     extra_context = {
         'title': _('Origen de proyecto'),
         'campos': {
+            'lista': [ 'nombre', ],
             'opciones': _('Opciones'),
-            'lista': [
-                #'id',
-                'nombre',
-            ],
         },
+        'campos_extra': [ 
+            { 'nombre': _('Vigente'), 'funcion': 'get_vigente', },
+        ],
         'opciones': DISPLAYS['opciones'],
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['permisos'] = {
-            'create': self.request.user.has_perm('seguimiento.add_pm_proyecto'),
             'update': self.request.user.has_perm('seguimiento.change_pm_proyecto'),
             'delete': self.request.user.has_perm('seguimiento.delete_pm_proyecto'),
         }
-        context['campos_adicionales'] = [ 
-            {'display': _('Vigente'), 'valor': self.object.get_vigente()},
-        ]
         
         if self.request.user.has_perm('seguimiento.view_proyecto'):   
             context['tables'] = [
                 {
                     'title':        _('Proyectos'),
-                    'enumerar':     1,
                     'object_list':  Proyecto.objects.filter(pm=self.object).order_by('actualizacion'),
-                    'campos':       ['nombre', 'actualizacion'],
+                    'enumerar':     1,
+                    'lista':       ['nombre', 'actualizacion'],
                     'opciones':     _('Opciones'),
                     'permisos': {
                         'update':   self.request.user.has_perm('seguimiento.change_proyecto'),
@@ -612,36 +551,32 @@ class ProyectoListView(PersonalListView, SeguimientoContextMixin):
     paginate_by = 15
     extra_context = {
         'title': _('Proyectos'),
+        'create' :{
+            'url':      Proyecto.url_create(),
+            'display':  _('Nuevo'),
+            'img':      'seguimiento_add.png',
+        },
         'campos': {
-            #-1: no enumera
-            # 0: inicia numeración en 0
-            # 1: inicia numeración en 1
             'enumerar': 1,
-            # Si hay valor se muestra opciones por linea, de lo contrario no se muestran
+            'lista': [ 'nombre', 'estado', ],
             'opciones': _('Opciones'),
-            # Lista de campos que se deben mostrar en la tabla
-            'lista': [ 'nombre', 'estado'],
         },
         'campos_extra': [
-            {
-                'nombre': _('Periodo'),
-                'funcion': 'get_periodo',
-            },
-            {
-                'nombre':   _('Resumen'), #display
-                # valor, constante o funcion 
-                'funcion': 'get_resumen',  
-            },
+            { 'nombre': _('Periodo'), 'funcion': 'get_periodo', },
+            { 'nombre':   _('Resumen'), 'funcion': 'get_resumen', },
         ],
         'opciones': DISPLAYS['opciones'],
-        'create' :{
-            'display':  _('Nuevo'),
-            'url':      Proyecto.url_create(),
-        },
         'mensaje': {
             'vacio': DISPLAYS['tabla_vacia'],
         },
     }
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.has_perm('seguimiento.proyect_admin'):
+            return queryset
+        proys = Proyecto_Usuario.objects.filter(usuario=self.request.user.id).values_list('proyecto')
+        return queryset.filter(Q(publico=True)|Q(id__in=proys))
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -651,13 +586,6 @@ class ProyectoListView(PersonalListView, SeguimientoContextMixin):
             'delete': self.request.user.has_perm('seguimiento.delete_proyecto'),
         }
         return context
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        proys = Proyecto_Usuario.objects.filter(usuario=self.request.user.id).values_list('proyecto')
-        if self.request.user.has_perm('seguimiento.proyect_admin'):
-            return queryset
-        return queryset.filter(Q(publico=True)|Q(id__in=proys))
 
 class ProyectoCreateView(PersonalCreateView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto'
@@ -683,115 +611,100 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
     extra_context = {
         'title': _('Proyecto'),
         'campos': {
+            'lista': [ 'nombre', 'descripcion', 'creacion', 'actualizacion',
+                'lider', 'estado', 'tipo', 'origen', 'pm', ],
             'opciones': _('Opciones'),
-            'lista': [
-                #'id',
-                'nombre',
-                'descripcion',
-                'creacion',
-                'actualizacion',
-                'lider',
-                'estado',
-                'tipo',
-                'origen',
-                'pm',
-            ],
         },
         'opciones': DISPLAYS['opciones'],
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
+        context['campos_extra'] = [
+            { 'nombre': _('Periodo'), 'funcion': 'get_periodo' },
+            { 'nombre': _('Publico'), 'funcion': 'get_tipo_permiso', },
+            { 'nombre': _('Usuarios'), 'ul_lista': self.object.get_usuarios() },
+        ]
+        context['permisos'] = {
+            'update': self.request.user.has_perm('seguimiento.change_proyecto'),
+            'delete': self.request.user.has_perm('seguimiento.delete_proyecto'),
+        }
         
         botones = []
         if self.request.user.has_perm('seguimiento.view_comentario'):
             botones.append({   
+                'permiso': self.request.user.has_perm('seguimiento.view_comentario'),
                 'url': reverse_lazy('seguimiento:list_comentario', kwargs={'pk': self.object.id}),
                 'display': 'Ver comentarios',
                 'img': 'seguimiento_comentario.png',
                 'target': '_blank',
             })
         if self.object.get_have_url():
-            botones.append({   
+            botones.append({ 
+                'permiso': True,  
                 'url': self.object.enlace_cloud,
                 'display': 'Cloud',
                 'img': 'seguimiento_cloud.png',
                 'target': '_blank',
             })
         context['botones_extra'] = botones
-
-        context['permisos'] = {
-            'update': self.request.user.has_perm('seguimiento.change_proyecto'),
-            'delete': self.request.user.has_perm('seguimiento.delete_proyecto'),
-        }
-        context['campos_adicionales'] = [
-            {   'display':   _('Publico'), #display # valor, constante o funcion 
-                'valor': self.object.get_tipo_permiso(),  
-            },
-            {   'display': _('Periodo'), 
-                'valor': self.object.get_periodo()
-            },
-            {   'display': _('Usuarios'), 
-                'ul_lista': self.object.get_usuarios()
-            },
-        ]
         
         formularios = []
         if self.request.user.has_perm('seguimiento.add_proyecto_objetivo'):
             formularios.append({
                             'modal':    'proyecto_objetivo', 
-                            'action':   reverse_lazy('seguimiento:create_proyectoobjetivo')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Definición de objetivos'),
                             'link_img': 'seguimiento_objetivo_add.png',
+                            'action':   reverse_lazy('seguimiento:create_proyectoobjetivo')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'form':     Proyecto_Objetivo_ModelForm('proyecto', instance=Proyecto_Objetivo(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
         if self.request.user.has_perm('seguimiento.add_proyecto_meta'):
             formularios.append({
                             'modal':    'proyecto_meta', 
-                            'action':   reverse_lazy('seguimiento:create_proyectometa')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Definición de metas'),
                             'link_img': 'seguimiento_meta_add.png',
+                            'action':   reverse_lazy('seguimiento:create_proyectometa')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'form':     Proyecto_Meta_ModelForm('proyecto', instance=Proyecto_Meta(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
         if self.request.user.has_perm('seguimiento.add_proyecto_fase'):
             formularios.append({
                             'modal':    'proyecto_fase', 
-                            'action':   reverse_lazy('seguimiento:create_proyectofase')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Definición de fases'),
                             'link_img': 'seguimiento_fase_add.png',
+                            'action':   reverse_lazy('seguimiento:create_proyectofase')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'form':     Proyecto_Fase_ModelForm('proyecto', instance=Proyecto_Fase(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
         if self.request.user.has_perm('seguimiento.add_proyecto_tarea'):
             formularios.append({
                             'modal':    'proyecto_tarea', 
-                            'action':   reverse_lazy('seguimiento:create_proyectotarea')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Definición de tareas'),
                             'link_img': 'seguimiento_tarea_add.png',
+                            'action':   reverse_lazy('seguimiento:create_proyectotarea')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'form':     Proyecto_Tarea_ModelCreateForm(self.object),
                             'opciones': DISPLAYS['forms'],
                         })
         if self.request.user.has_perm('seguimiento.proyect_admin'):
             formularios.append({
                             'modal':    'proyecto_usuario', 
-                            'action':   reverse_lazy('seguimiento:create_proyectousuario')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Agregar usuario al proyecto'),
                             'link_img': 'seguimiento_add_usuario.png',
+                            'action':   reverse_lazy('seguimiento:create_proyectousuario')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'form':     Proyecto_Usuario_ModelForm('proyecto', instance=Proyecto_Objetivo(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
         if self.request.user.has_perm('seguimiento.add_comentario'):
             formularios.append({
                             'modal':    'comentario',
-                            'tipo':     'P',
-                            'id':       self.object.id,
-                            'action':   reverse_lazy('seguimiento:create_comentario')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'display':  _('Comentario'),
                             'link_img': 'seguimiento_comentario_add.png',
+                            'action':   reverse_lazy('seguimiento:create_comentario')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
                             'form':     Proyecto_Comentario_ModelForm('proyecto', instance=Comentario(tipo='P', obj_id=self.object.id)),
                             'opciones': DISPLAYS['forms'],
+                            'tipo':     'P',
+                            'id':       self.object.id,
                         })
         context['forms'] = formularios
 
@@ -799,43 +712,33 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         if self.request.user.has_perm('seguimiento.view_proyecto_objetivo'):
             tablas.append({   
                             'title':        _('Objetivos'),
-                            'enumerar':     1,
                             'object_list':  Proyecto_Objetivo.objects.filter(proyecto=self.object).order_by('descripcion'),
-                            'campos':       ['descripcion',],
+                            'enumerar':     1,
+                            'lista':       ['descripcion',],
                             'campos_extra': [
-                                {
-                                    'nombre':   _('Alcanzado'), #display
-                                    # valor, constante o funcion 
-                                    'funcion': 'get_alcanzado',  
-                                },
+                                { 'nombre':   _('Alcanzado'), 'funcion': 'get_alcanzado', },
                             ],
+                            'opciones':     _('Opciones'),
                             'permisos': {
                                 'update':   self.request.user.has_perm('seguimiento.change_proyecto_objetivo'),
                                 'delete':   self.request.user.has_perm('seguimiento.delete_proyecto_objetivo'),
                             },
-                            'opciones':     _('Opciones'),
-                            #Si tiene next, redirecciona a esa pagina
                             'next':         self.object.url_detail(),
                         })
         if self.request.user.has_perm('seguimiento.view_proyecto_meta'):
             tablas.append({
                             'title':        _('Metas'),
-                            'enumerar':     1,
                             'object_list':  Proyecto_Meta.objects.filter(proyecto=self.object).order_by('descripcion'),
-                            'campos':       ['descripcion',],
+                            'enumerar':     1,
+                            'lista':       ['descripcion',],
                             'campos_extra': [
-                                {
-                                    'nombre':   _('Alcanzado'), #display
-                                    # valor, constante o funcion 
-                                    'funcion': 'get_alcanzado',  
-                                },
+                                { 'nombre':  _('Alcanzado'), 'funcion': 'get_alcanzado', },
                             ],
+                            'opciones':     _('Opciones'),
                             'permisos': {
                                 'update':   self.request.user.has_perm('seguimiento.change_proyecto_meta'),
                                 'delete':   self.request.user.has_perm('seguimiento.delete_proyecto_meta'),
                             },
-                            'opciones':     _('Opciones'),
-                            #Si tiene next, redirecciona a esa pagina
                             'next':         self.object.url_detail(),
                         })
         context['tables'] = tablas
@@ -856,7 +759,6 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                                 'update':   self.request.user.has_perm('seguimiento.change_proyecto_fase'),
                                 'delete':   self.request.user.has_perm('seguimiento.delete_proyecto_fase'),
                             },
-                            #Si tiene next, redirecciona a esa pagina
                             'next':         self.object.url_detail(),
                         }
         return context

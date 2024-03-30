@@ -189,7 +189,12 @@ class Proyecto(models.Model):
         '''
             Determina si el estado del proyecto permite modificaciones sobre los objetos dependientes
         '''
-        return not self.ffin < date.today() and not self.estado.bloquea
+        try:
+            proy_expira = int(conf.get_value('seguimiento', 'proy_expira'))
+        except Exception as e:
+            proy_expira = False
+
+        return not (proy_expira and self.ffin < date.today()) and not self.estado.bloquea
 
     def get_usuarios(self):
         return list(Proyecto_Usuario.objects.filter(proyecto=self))

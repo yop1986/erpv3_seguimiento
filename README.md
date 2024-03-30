@@ -31,6 +31,15 @@ siguiente informacion:
         },
     }
 
+#### Configraciones.cfg
+
+En el archivo static/configuraciones.cfg es necesario agregar el siguiente registro si 
+se desea bloquear los proyectos que hayan expirado.
+
+    [seguimiento]
+    #Determina si expira (1), o no expira (0) un proyecto por su fecha de finalización
+    proy_expira     = 1
+
 #### Urls
 
 Posterior a esta configuracion es necesario agregar las urls al proyecto base __< Base >/urls.py__

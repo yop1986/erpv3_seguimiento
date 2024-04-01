@@ -759,7 +759,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             },
                             'opciones':     _('Opciones'),
                             'permisos': {
-                                'comment':   self.request.user.has_perm('seguimiento:add_comentario'),
+                                'comment':   self.request.user.has_perm('seguimiento.add_comentario'),
                                 'update':   self.request.user.has_perm('seguimiento.change_proyecto_fase'),
                                 'delete':   self.request.user.has_perm('seguimiento.delete_proyecto_fase'),
                             },

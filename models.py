@@ -164,6 +164,12 @@ class Proyecto(models.Model):
         if errores:
             raise ValidationError(errores)
 
+    def get_porcentaje_completado(self):
+        total_complejidad = Proyecto_Tarea.objects.filter(fase__proyecto=self).aggregate(total=Sum('complejidad'))['total']
+        total_completado = Proyecto_Tarea.objects.filter(fase__proyecto=self).aggregate(total=Sum(F('complejidad')*F('finalizado')))['total']
+        porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
+        return f'{round(porcentaje, 2)} %'
+
     def get_tipo_permiso(self):
         return _('Público') if self.publico else _('Privado')
 

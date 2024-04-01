@@ -626,6 +626,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         context['campos_extra'] = [
             { 'nombre': _('Periodo'), 'funcion': 'get_periodo' },
             { 'nombre': _('Publico'), 'funcion': 'get_tipo_permiso', },
+            { 'nombre': _('Compeltado'), 'funcion': 'get_porcentaje_completado', },
             { 'nombre': _('Usuarios'), 'ul_lista': self.object.get_usuarios() },
         ]
         context['permisos'] = {

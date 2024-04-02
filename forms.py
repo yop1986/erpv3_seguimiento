@@ -97,7 +97,7 @@ class Proyecto_Tarea_ModelCreateForm(forms.ModelForm):
 class Proyecto_Tarea_ModelUpdateForm(forms.ModelForm):
     class Meta:
         model = Proyecto_Tarea
-        fields = ['fase', 'descripcion', 'complejidad', 'finalizado']
+        fields = ['fase', 'descripcion', 'prioridad', 'complejidad', 'finalizado']
 
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)

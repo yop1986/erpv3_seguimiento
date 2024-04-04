@@ -1,4 +1,5 @@
 from datetime import date
+from itertools import chain
 
 from django.apps import apps
 from django.contrib import messages
@@ -1046,6 +1047,39 @@ class Proyecto_FaseDeleteView(PersonalDeleteView, SeguimientoContextMixin):
         return kwargs
 
 
+
+class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.view_proyecto_tarea'
+    template_name = 'template/list.html'
+    model = Proyecto_Tarea
+    ordering = ['-prioridad', 'creacion', 'descripcion']
+    paginate_by = 50
+    extra_context = {
+        'title': _('Tareas pendientes'),
+        'campos': {
+            'enumerar': 1,
+            'lista': [ 'descripcion', ],
+        },
+        'campos_extra': [
+            { 'nombre': _('Fase'), 'funcion': 'get_full_parent', },
+            { 'nombre': _('% Compeltado'), 'valor': 'get_finalizado', },
+            { 'nombre': _('Prioridad'), 'valor': 'get_prioridad', },
+            { 'nombre': _('Ir'), 'url': 'url_proyecto', 'target': '_blank', 'img': 'seguimiento_ir.png'},
+        ],
+        'mensaje': {
+            'vacio': DISPLAYS['tabla_vacia'],
+        },
+    }
+
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(finalizado__lt = 100)
+        if self.request.user.has_perm('seguimiento.proyect_admin'):
+            print('admin')
+            return queryset
+        asignados = Proyecto_Usuario.objects.filter(usuario = self.request.user).values_list('proyecto', flat=True) 
+        publicos = Proyecto.objects.filter(publico=True).values_list('id', flat=True)
+        queryset = queryset.filter(fase__proyecto__in = chain(asignados, publicos))
+        return queryset
 
 class Proyecto_TareaFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_tarea'

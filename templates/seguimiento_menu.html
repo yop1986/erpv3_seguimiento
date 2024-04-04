@@ -26,5 +26,10 @@
   <a class="nav-link active" aria-current="page" href="{% url 'seguimiento:list_proyecto' %}">{% translate "Proyectos" %}</a>
 </li>
 {% endif %}
+{% if perms.seguimiento.view_proyecto_tarea %}
+<li class="nav-item">
+  <a class="nav-link active" aria-current="page" href="{% url 'seguimiento:list_proyectotarea' %}">{% translate "Tareas" %}</a>
+</li>
+{% endif %}
 </li> 
 {% endif %}

@@ -52,6 +52,7 @@ urlpatterns = [
     path('fase/actualizar/<uuid:pk>', views.Proyecto_FaseUpdateView.as_view(), name='update_proyectofase'),
     path('fase/eliminar/<uuid:pk>', views.Proyecto_FaseDeleteView.as_view(), name='delete_proyectofase'),
 
+    path('tarea/', views.Proyecto_TareaListView.as_view(), name='list_proyectotarea'),
     path('tarea/nueva/', views.Proyecto_TareaFormView.as_view(), name='create_proyectotarea'),
     path('tarea/actualizar/<uuid:pk>', views.Proyecto_TareaUpdateView.as_view(), name='update_proyectotarea'),
     path('tarea/eliminar/<uuid:pk>', views.Proyecto_TareaDeleteView.as_view(), name='delete_proyectotarea'),

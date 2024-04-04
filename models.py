@@ -343,6 +343,9 @@ class Proyecto_Tarea(models.Model):
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
 
+    def url_proyecto(self):
+        return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': self.fase.proyecto.id})
+
     def url_update(self):
         if self.finalizado<100 and self.fase.proyecto.get_modificable():
             return reverse_lazy('seguimiento:update_proyectotarea', kwargs={'pk': self.id})
@@ -353,6 +356,9 @@ class Proyecto_Tarea(models.Model):
             return reverse_lazy('seguimiento:delete_proyectotarea', kwargs={'pk': self.id})
         return None
 
+    def get_full_parent(self):
+        return f'{self.fase.proyecto} > {self.fase.correlativo:02d}: {self.fase.descripcion}'
+        
     @property
     def get_finalizado(self):
         return f'{self.finalizado}%'

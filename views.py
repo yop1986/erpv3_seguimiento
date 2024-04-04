@@ -621,6 +621,14 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         'opciones': DISPLAYS['opciones'],
     }
 
+    def get_object(self):
+        obj = super().get_object()
+        if self.request.user.has_perm('seguimiento.proyect_admin') or obj.publico:
+            return obj
+        if (Proyecto_Usuario.objects.filter(usuario=self.request.user.id, proyecto=obj).count()):
+            return obj
+        return None
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['campos_extra'] = [
@@ -635,20 +643,20 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         }
         
         botones = []
-        if self.request.user.has_perm('seguimiento.view_comentario'):
-            botones.append({   
-                'permiso': self.request.user.has_perm('seguimiento.view_comentario'),
-                'url': reverse_lazy('seguimiento:list_comentario', kwargs={'pk': self.object.id}),
-                'display': 'Ver comentarios',
-                'img': 'seguimiento_comentario.png',
-                'target': '_blank',
-            })
         if self.object.get_have_url():
             botones.append({ 
                 'permiso': True,  
                 'url': self.object.enlace_cloud,
                 'display': 'Cloud',
                 'img': 'seguimiento_cloud.png',
+                'target': '_blank',
+            })
+        if self.request.user.has_perm('seguimiento.view_comentario'):
+            botones.append({   
+                'permiso': self.request.user.has_perm('seguimiento.view_comentario'),
+                'url': reverse_lazy('seguimiento:list_comentario', kwargs={'pk': self.object.id}),
+                'display': 'Ver comentarios',
+                'img': 'seguimiento_comentario.png',
                 'target': '_blank',
             })
         context['botones_extra'] = botones
@@ -797,7 +805,7 @@ class ProyectoDeleteView(PersonalDeleteView, SeguimientoContextMixin):
 
 
 class Proyecto_UsuarioFormView(PersonalFormView, SeguimientoContextMixin):
-    permission_required = 'seguimiento.add_proyecto_usuario'
+    permission_required = 'seguimiento.proyect_admin'
     template_name = 'template/forms.html'
     model = Proyecto_Usuario
     form_class = Proyecto_Usuario_ModelForm
@@ -822,7 +830,7 @@ class Proyecto_UsuarioFormView(PersonalFormView, SeguimientoContextMixin):
         return super().form_valid(form)
 
 class Proyecto_UsuarioDeleteView(PersonalDeleteView, SeguimientoContextMixin):
-    permission_required = 'seguimiento.delete_proyecto_usuario'
+    permission_required = 'seguimiento.proyect_admin'
     template_name = 'template/delete_confirmation.html'
     model = Proyecto_Usuario
     success_url = reverse_lazy('seguimiento:list_proyecto')
@@ -831,6 +839,12 @@ class Proyecto_UsuarioDeleteView(PersonalDeleteView, SeguimientoContextMixin):
         'opciones': DISPLAYS['delete_form'],
     }
 
+    def get_form_kwargs(self, **kwargs):
+        kwargs = super().get_form_kwargs()
+        redirect = self.request.GET.get('next')
+        if redirect:
+            self.success_url = redirect
+        return kwargs
 
 
 class Proyecto_ObjetivoFormView(PersonalFormView, SeguimientoContextMixin):
@@ -944,7 +958,7 @@ class Proyecto_MetaUpdateView(PersonalUpdateView, SeguimientoContextMixin):
         return kwargs
 
 class Proyecto_MetaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
-    permission_required = 'seguimiento.delete_proyecto_objetivo'
+    permission_required = 'seguimiento.delete_proyecto_meta'
     template_name = 'template/delete_confirmation.html'
     model = Proyecto_Meta
     #success_url =

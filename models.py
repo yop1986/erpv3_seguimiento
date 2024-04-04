@@ -151,7 +151,7 @@ class Proyecto(models.Model):
 
     class Meta:
         permissions = [
-            ("proyect_admin", "Permite ver todos los proyectos, sean publicos o privados")
+            ("proyect_admin", "Ver todos los proyectos y agregar usuarios")
         ]
 
     def __str__(self):

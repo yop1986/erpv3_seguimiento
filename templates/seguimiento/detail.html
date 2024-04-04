@@ -48,7 +48,7 @@
           <ul>
           {% for elemento in extra.ul_lista %}
           <li> 
-            <form class="row g-3" action="{% url 'seguimiento:delete_proyectousuario' elemento.id %}?next={{ object.id }}">
+            <form class="row g-3" method="post" action="{% url 'seguimiento:delete_proyectousuario' elemento.id %}?next={% url 'seguimiento:detail_proyecto' object.id %}">
               {% csrf_token %}
               <div class="col-auto">
               <input type="submit" value="X" name="" class="btn btn-danger btn-sm">
@@ -200,6 +200,7 @@
       </h2>
         <div id="collapse{{forloop.counter}}" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
           <div class="accordion-body">
+            {% if perms.seguimiento.view_proyecto_tarea %}
             <table class="table table-striped">
                 <tbody>
                   {% for subobj in fase_object.get_todas_tareas %}
@@ -230,6 +231,7 @@
                   {% endfor %}
                 </tbody>
             </table>
+            {% endif %}
           </div>
         </div>
       </div>

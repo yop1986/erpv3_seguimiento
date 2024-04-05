@@ -123,7 +123,8 @@ class Proyecto_Usuario_ModelForm(forms.ModelForm):
                 self.fields['proyecto'].queryset = self.fields['proyecto'].queryset.filter(id=self.initial['proyecto'])
                 self.fields['proyecto'].widget = forms.HiddenInput()
                 usrs = Proyecto_Usuario.objects.filter(proyecto=self.initial['proyecto']).values_list('usuario')
-                self.fields['usuario'].queryset = Usuario.objects.filter(is_active=True).exclude(id__in=usrs)
+                self.fields['usuario'].queryset = Usuario.objects.filter(is_active=True).exclude(id__in=usrs)\
+                    .only('username', 'first_name', 'last_name')
         except:
             pass
 

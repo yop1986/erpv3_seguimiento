@@ -165,8 +165,9 @@ class Proyecto(models.Model):
             raise ValidationError(errores)
 
     def get_porcentaje_completado(self):
-        total_complejidad = Proyecto_Tarea.objects.filter(fase__proyecto=self).aggregate(total=Sum('complejidad'))['total']
-        total_completado = Proyecto_Tarea.objects.filter(fase__proyecto=self).aggregate(total=Sum(F('complejidad')*F('finalizado')))['total']
+        queryset = Proyecto_Tarea.objects.filter(fase__proyecto=self)
+        total_complejidad = queryset.aggregate(total=Sum('complejidad'))['total']
+        total_completado = queryset.aggregate(total=Sum(F('complejidad')*F('finalizado')))['total']
         porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
         return f'{round(porcentaje, 2)} %'
 
@@ -215,7 +216,7 @@ class Proyecto(models.Model):
         return reverse_lazy('seguimiento:update_proyecto', kwargs={'pk': self.id})
 
     def url_delete(self):
-        if Proyecto_Fase.objects.filter(proyecto=self).count()>0:
+        if self.proyecto_fase_set.count() > 0:
             return None
         return reverse_lazy('seguimiento:delete_proyecto', kwargs={'pk': self.id})
 

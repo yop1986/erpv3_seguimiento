@@ -578,9 +578,9 @@ class ProyectoListView(PersonalListView, SeguimientoContextMixin):
     def get_queryset(self):
         queryset = super().get_queryset()
         if self.request.user.has_perm('seguimiento.proyect_admin'):
-            return queryset
+            return queryset.select_related('estado')
         proys = Proyecto_Usuario.objects.filter(usuario=self.request.user.id).values_list('proyecto')
-        return queryset.filter(Q(publico=True)|Q(id__in=proys))
+        return queryset.select_related('estado').filter(Q(publico=True)|Q(id__in=proys))
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -622,12 +622,14 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         'opciones': DISPLAYS['opciones'],
     }
 
-    def get_object(self):
-        obj = super().get_object()
-        if self.request.user.has_perm('seguimiento.proyect_admin') or obj.publico:
-            return obj
-        if (Proyecto_Usuario.objects.filter(usuario=self.request.user.id, proyecto=obj).count()):
-            return obj
+    def get_queryset(self, *args, **kwargs):
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('estado').select_related('tipo')\
+            .select_related('lider').select_related('origen').select_related('pm')\
+            .filter(id = self.kwargs['pk'])
+        if self.request.user.has_perm('seguimiento.proyect_admin') or queryset.filter(publico=True) or \
+            Proyecto_Usuario.objects.filter(usuario=self.request.user, proyecto_id=self.kwargs['pk']).count():
+            return queryset
         return None
 
     def get_context_data(self, *args, **kwargs):
@@ -635,7 +637,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         context['campos_extra'] = [
             { 'nombre': _('Periodo'), 'funcion': 'get_periodo' },
             { 'nombre': _('Publico'), 'funcion': 'get_tipo_permiso', },
-            { 'nombre': _('Compeltado'), 'funcion': 'get_porcentaje_completado', },
+            { 'nombre': _('Completado'), 'funcion': 'get_porcentaje_completado', },
             { 'nombre': _('Usuarios'), 'ul_lista': self.object.get_usuarios() },
         ]
         context['permisos'] = {
@@ -1062,7 +1064,7 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
         },
         'campos_extra': [
             { 'nombre': _('Fase'), 'funcion': 'get_full_parent', },
-            { 'nombre': _('% Compeltado'), 'valor': 'get_finalizado', },
+            { 'nombre': _('% Completado'), 'valor': 'get_finalizado', },
             { 'nombre': _('Prioridad'), 'valor': 'get_prioridad', },
             { 'nombre': _('Ir'), 'url': 'url_proyecto', 'target': '_blank', 'img': 'seguimiento_ir.png'},
         ],
@@ -1073,11 +1075,12 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
 
     def get_queryset(self):
         queryset = super().get_queryset().filter(finalizado__lt = 100)
+        queryset = queryset.select_related('fase')
         if self.request.user.has_perm('seguimiento.proyect_admin'):
-            print('admin')
             return queryset
         asignados = Proyecto_Usuario.objects.filter(usuario = self.request.user).values_list('proyecto', flat=True) 
         publicos = Proyecto.objects.filter(publico=True).values_list('id', flat=True)
+
         queryset = queryset.filter(fase__proyecto__in = chain(asignados, publicos))
         return queryset
 

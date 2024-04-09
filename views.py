@@ -4,7 +4,6 @@ from itertools import chain
 from django.apps import apps
 from django.contrib import messages
 from django.db.models import Q
-
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext as _

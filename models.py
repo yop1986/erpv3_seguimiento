@@ -13,7 +13,6 @@ from django.urls import reverse_lazy
 from django_ckeditor_5.fields import CKEditor5Field
 from simple_history.models import HistoricalRecords
 
-from usuarios.models import Usuario
 from usuarios.personal_views import Configuracion
 
 conf = Configuracion()
@@ -142,7 +141,7 @@ class Proyecto(models.Model):
     ffin    = models.DateField(_('Fecha Fin'))
     publico = models.BooleanField(_('Público'), default=True, help_text=_('Define si el proyecto es visible para todos los usuarios'))
 
-    lider   = models.ForeignKey(Usuario, verbose_name=_('Lider'), blank=True, null=True, on_delete=models.RESTRICT)
+    lider   = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Lider'), blank=True, null=True, on_delete=models.RESTRICT)
     estado  = models.ForeignKey(Estado, verbose_name=_('Estado'), on_delete=models.RESTRICT)
     tipo    = models.ForeignKey(Tipo_Proyecto, verbose_name=_('Tipo de proyecto'), blank=True, null=True, on_delete=models.RESTRICT)
     origen  = models.ForeignKey(Origen_Proyecto, verbose_name=_('Origen de proyecto'), blank=True, null=True, on_delete=models.RESTRICT)

@@ -10,15 +10,15 @@
       </div>
       <div class="col text-center">
         
-      {% if botones_extra %}
+    {% if botones_extra %}
       {% for boton in botones_extra %}
-      {% if boton.permiso %}
-      <a href="{{ boton.url }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ boton.display }}" {% if boton.target %}target="{{ boton.target }}"{% endif %}>
-        <img src="{% static 'images/' %}{{ boton.img }}" alt="{{ boton.display }}" height="42px">
-      </a>
-      {% endif %}
+        {% if boton.permiso %}
+        <a href="{{ boton.url }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ boton.display }}" {% if boton.target %}target="{{ boton.target }}"{% endif %}>
+          <img src="{% static 'images/' %}{{ boton.img }}" alt="{{ boton.display }}" height="42px">
+        </a>
+        {% endif %}
       {% endfor %}
-      {% endif %}
+    {% endif %}
       </div>
     </div>
 
@@ -172,73 +172,27 @@
   {% endfor %}
   </div>
 
+  <hr width="95%">
 
-  {% if fases %}
-  <div class="row">
-    <div class="accordion" id="accordionFases">
-      {% for fase_object in fases.object_list %}
-      <div class="accordion-item">
-        <h2 class="accordion-header" id="headingOne">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{forloop.counter}}" aria-expanded="false" aria-controls="collapse{{forloop.counter}}">
-            {% if fases.permisos.comment %}
-            <a href="#" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Comentario" tipo="F" obj_id="{{ fase_object.id }}">
-              <img src="{% static 'images/seguimiento_comentario_add.png' %}" alt="Comentario" height="25px" data-bs-toggle="modal" data-bs-target="#comentario" data-bs-toggle="tooltip" data-bs-placement="top" modal="comentario" >
-            </a>
-            {% endif %}
-            {% if fases.permisos.update and fase_object.url_update %}
-              <a href="{{ fase_object.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
-                <img src="{% static 'images/' %}{{ opciones.update_img}}" alt="{{ opciones.update }}" height="25px">
-              </a>
-            {% endif %}
-            {% if fases.permisos.delete and fase_object.url_delete %}
-              <a href="{{ fase_object.url_delete }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
-                <img src="{% static 'images/' %}{{ opciones.delete_img}}" alt="{{ opciones.delete }}" height="25px">
-              </a>
-            {% endif %} 
-            {{ fase_object }} ({% get_object_funcvalue fase_object fases.func_extra %} %)
+<div class="row">
+    <div class="col-3">
+    {% if fases %}
+
+      {% for fase in fases %}
+      <div class="row">
+        <button id="fase" type="button" class="btn btn-light" obj_id="{{ fase.id }}">
+        {{ fase.descripcion }}
         </button>
-      </h2>
-        <div id="collapse{{forloop.counter}}" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
-          <div class="accordion-body">
-            {% if perms.seguimiento.view_proyecto_tarea %}
-            <table class="table table-striped">
-                <tbody>
-                  {% for subobj in fase_object.get_todas_tareas %}
-                  <tr>
-                    {% for campo in fases.campos %}
-                    <td>{% get_object_value subobj campo %}</td>
-                    {% endfor %}
-
-                    <td class="col-2">
-                    {% if fases.permisos.comment %}
-                      <a href="#" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Comentario" tipo="T" obj_id="{{ subobj.id }}">
-                        <img src="{% static 'images/seguimiento_comentario_add.png' %}" alt="Comentario" height="25px" data-bs-toggle="modal" data-bs-target="#comentario" data-bs-toggle="tooltip" data-bs-placement="top" modal="comentario" >
-                      </a>
-                    {% endif %}
-                    {% if fases.permisos_tarea.update and subobj.url_update %}
-                      <a href="{{ subobj.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
-                        <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
-                      </a>
-                    {% endif %}
-                      
-                    {% if fases.permisos_tarea.delete and subobj.url_delete %}
-                      <a href="{{ subobj.url_delete }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.delete }}">
-                        <img src="{% static 'images/seguimiento_delete.png' %}" alt="{{ opciones.delete }}" height="25px">
-                      </a>
-                    {% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-            </table>
-            {% endif %}
-          </div>
-        </div>
       </div>
       {% endfor %}
+    {% endif %}
     </div>
-  </div>
-  {% endif %}
+    <div class="col" id="col_tarea">
+      {% if faseactiva %}
+        <div id="faseactiva" obj_id="{{ faseactiva }}">{{ faseactiva }}</div>
+      {% endif %}
+    </div>
+</div>
 
     {% for table in manual_tables %}
       {% include 'template/manual_tables.html' %}
@@ -251,11 +205,50 @@
 
 <script type="text/javascript" src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
 <script>
+    $(document).ready(function() {
+      var obj_id = "{{ faseactiva }}";
+      $('button#fase[obj_id="' + obj_id +'"]').click();
+    });
+
+    $("button#fase").on('click', function(){
+      var fase    = $(this).text();
+      var obj_id  = $(this).attr('obj_id');
+      $.ajax({
+        url: "{% url 'seguimiento:accordion_tareaactividad' %}",
+        type: 'get',
+        data: {
+          'fase':   fase,
+          'obj_id': obj_id,
+        },
+        success: function(data){
+          $('div#col_tarea').html(data)
+        },
+      });
+    });
+
+
+    $("select#id_fase").on('change', function(){
+      var fase_id = $(this).val()
+      $.ajax({
+        url: "{% url 'seguimiento:combo_fasetarea' %}",
+        type: 'get',
+        data: {
+          'fase_id': fase_id
+        },
+        success: function(data){
+          $('select#id_tarea').html(data)
+        },
+      });
+    });
+
+
+
+
     $(".btn-primary").mouseenter(function(){
       var valor = $(this).attr('title')
       if (valor == 'Comentario'){
-        var id = $(this).attr('obj_id')
-        var tipo = $(this).attr('tipo')
+        var id    = $(this).attr('obj_id')
+        var tipo  = $(this).attr('tipo')
         //console.log('tipo >> objeto: '+tipo+' >> '+ id)
         $('#comentario .modal-body form input#id_obj_id').val(id)
         $('#comentario .modal-body form input#id_tipo').val(tipo)

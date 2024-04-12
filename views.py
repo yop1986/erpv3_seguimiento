@@ -4,7 +4,7 @@ from itertools import chain
 from django.apps import apps
 from django.contrib import messages
 from django.db.models import Q
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils.translation import gettext as _
 from django.views.generic.base import TemplateView
@@ -13,11 +13,11 @@ from usuarios.personal_views import (PersonalContextMixin, PersonalCreateView,
     PersonalUpdateView, PersonalListView, PersonalDetailView, PersonalDeleteView, 
     PersonalFormView, Configuracion)
 
-from .models import (Estado, Tipo_Proyecto, Origen_Proyecto, PM_Proyecto, Proyecto, Proyecto_Objetivo, Proyecto_Meta, Proyecto_Fase,
-	Proyecto_Tarea, Proyecto_Usuario, Comentario)
+from .models import (Estado, Tipo_Proyecto, Origen_Proyecto, PM_Proyecto, Proyecto, Proyecto_Objetivo, 
+    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, Comentario)
 from .forms import (ProyectoForm, Proyecto_Objetivo_ModelForm, Proyecto_Meta_ModelForm,
     Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelCreateForm, Proyecto_Tarea_ModelUpdateForm,
-    Proyecto_Usuario_ModelForm, Proyecto_Comentario_ModelForm)
+    Proyecto_Usuario_ModelForm, Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm)
 
 #gConfiguracion = Configuracion()
 
@@ -56,7 +56,7 @@ class IndexTemplateView(TemplateView, SeguimientoContextMixin):
         'elementos': [
             {
                 'display':  _('Proyecto'),
-                'desc':     _('Agrupación de actividades por poryecto, medicion de \
+                'desc':     _('Agrupación de actividades por proyecto, medicion de \
                 	avances y control sobre las tareas.'),
                 'imagen':   _('seguimiento_proyecto.png'),
             },
@@ -633,6 +633,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
+        context['faseactiva'] = self.kwargs['faseactiva'] if 'faseactiva' in self.kwargs else None
         context['campos_extra'] = [
             { 'nombre': _('Periodo'), 'funcion': 'get_periodo' },
             { 'nombre': _('Publico'), 'funcion': 'get_tipo_permiso', },
@@ -669,7 +670,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'modal':    'proyecto_objetivo', 
                             'display':  _('Definición de objetivos'),
                             'link_img': 'seguimiento_objetivo_add.png',
-                            'action':   reverse_lazy('seguimiento:create_proyectoobjetivo')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectoobjetivo')+'?next='+self.object.url_detail(),
                             'form':     Proyecto_Objetivo_ModelForm('proyecto', instance=Proyecto_Objetivo(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
@@ -678,7 +679,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'modal':    'proyecto_meta', 
                             'display':  _('Definición de metas'),
                             'link_img': 'seguimiento_meta_add.png',
-                            'action':   reverse_lazy('seguimiento:create_proyectometa')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectometa')+'?next='+self.object.url_detail(),
                             'form':     Proyecto_Meta_ModelForm('proyecto', instance=Proyecto_Meta(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
@@ -687,7 +688,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'modal':    'proyecto_fase', 
                             'display':  _('Definición de fases'),
                             'link_img': 'seguimiento_fase_add.png',
-                            'action':   reverse_lazy('seguimiento:create_proyectofase')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectofase')+'?next='+self.object.url_detail(),
                             'form':     Proyecto_Fase_ModelForm('proyecto', instance=Proyecto_Fase(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
@@ -696,8 +697,17 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'modal':    'proyecto_tarea', 
                             'display':  _('Definición de tareas'),
                             'link_img': 'seguimiento_tarea_add.png',
-                            'action':   reverse_lazy('seguimiento:create_proyectotarea')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectotarea')+'?next='+self.object.url_detail(),
                             'form':     Proyecto_Tarea_ModelCreateForm(self.object),
+                            'opciones': DISPLAYS['forms'],
+                        })
+        if self.request.user.has_perm('seguimiento.add_proyecto_actividad'):
+            formularios.append({
+                            'modal':    'proyecto_actividad', 
+                            'display':  _('Definición de actividades'),
+                            'link_img': 'seguimiento_actividad.png',
+                            'action':   reverse_lazy('seguimiento:create_proyectoactividad')+'?next='+self.object.url_detail(),
+                            'form':     Proyecto_Actividad_ModelForm(self.object),
                             'opciones': DISPLAYS['forms'],
                         })
         if self.request.user.has_perm('seguimiento.proyect_admin'):
@@ -705,7 +715,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'modal':    'proyecto_usuario', 
                             'display':  _('Agregar usuario al proyecto'),
                             'link_img': 'seguimiento_add_usuario.png',
-                            'action':   reverse_lazy('seguimiento:create_proyectousuario')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_proyectousuario')+'?next='+self.object.url_detail(),
                             'form':     Proyecto_Usuario_ModelForm('proyecto', instance=Proyecto_Objetivo(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
@@ -714,7 +724,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'modal':    'comentario',
                             'display':  _('Comentario'),
                             'link_img': 'seguimiento_comentario_add.png',
-                            'action':   reverse_lazy('seguimiento:create_comentario')+'?next='+self.object.url_detail() if self.object.get_modificable() else None,
+                            'action':   reverse_lazy('seguimiento:create_comentario')+'?next='+self.object.url_detail(),
                             'form':     Proyecto_Comentario_ModelForm('proyecto', instance=Comentario(tipo='P', obj_id=self.object.id)),
                             'opciones': DISPLAYS['forms'],
                             'tipo':     'P',
@@ -758,23 +768,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         context['tables'] = tablas
 
         if self.request.user.has_perm('seguimiento.view_proyecto_fase'):
-            context['fases'] = {
-                            'enumerar':     -1,
-                            'object_list':  Proyecto_Fase.objects.filter(proyecto=self.object).order_by('correlativo'),
-                            'func_extra':   'get_porcentaje_completado',
-                            'campos':       ['descripcion', 'get_prioridad', 'complejidad', 'get_finalizado'], #subtabla
-                            'permisos_tarea': {
-                                'update':   self.request.user.has_perm('seguimiento.change_proyecto_tarea'),
-                                'delete':   self.request.user.has_perm('seguimiento.delete_proyecto_tarea'),
-                            },
-                            'opciones':     _('Opciones'),
-                            'permisos': {
-                                'comment':   self.request.user.has_perm('seguimiento.add_comentario'),
-                                'update':   self.request.user.has_perm('seguimiento.change_proyecto_fase'),
-                                'delete':   self.request.user.has_perm('seguimiento.delete_proyecto_fase'),
-                            },
-                            'next':         self.object.url_detail(),
-                        }
+            context['fases'] = Proyecto_Fase.objects.filter(proyecto=self.object).order_by('descripcion')
 
         if self.object.ffin < date.today():
             messages.add_message(self.request, messages.WARNING, _('Proyecto expiró'))
@@ -1104,6 +1098,9 @@ class Proyecto_TareaFormView(PersonalFormView, SeguimientoContextMixin):
 
     def form_valid(self, form, *args, **kwargs):
         data = form.cleaned_data
+        fase = Proyecto_Fase.objects.get(id = data['fase'].id)
+        self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
         proyecto_fase = Proyecto_Tarea(**data)
         proyecto_fase.save()
         return super().form_valid(form)
@@ -1152,6 +1149,83 @@ class Proyecto_TareaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
         return kwargs
 
 
+class Proyecto_ActividadFormView(PersonalFormView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.add_proyecto_actividad'
+    template_name = 'template/forms.html'
+    model = Proyecto_Actividad
+    form_class = Proyecto_Actividad_ModelForm
+    success_url = reverse_lazy('seguimiento:list_proyecto')
+    success_message = _('Actividad ingresada correctamente')
+    extra_context = {
+        'title': _('Ingreso de actividades'),
+        'opciones': DISPLAYS['forms'],
+    }
+
+    def get_form_kwargs(self, **kwargs):
+        kwargs = super().get_form_kwargs()
+        redirect = self.request.GET.get('next')
+        if redirect:
+            self.success_url = redirect
+        return kwargs
+
+    def form_valid(self, form, *args, **kwargs):
+        data = form.cleaned_data
+        fase = Proyecto_Fase.objects.get(id = data.pop('fase'))
+        self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
+        proyecto_fase = Proyecto_Actividad(**data)
+        proyecto_fase.save()
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        for error in form.errors.get("__all__"):
+            messages.error(self.request, error)
+        return redirect(self.success_url)
+
+class Proyecto_ActividadUpdateView(PersonalUpdateView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.change_proyecto_actividad'
+    template_name = 'template/forms.html'
+    model = Proyecto_Actividad
+    form_class = Proyecto_Actividad_ModelForm
+    success_message = 'Actualización exitosa'
+    extra_context = {
+        'title': _('Modificar actividad'),
+        'opciones': DISPLAYS['forms'],
+    }
+
+    def get_success_url(self):
+        fase = self.object.tarea.fase
+        return reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
+
+class Proyecto_ActividadDeleteView(PersonalDeleteView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.delete_proyecto_actividad'
+    template_name = 'template/delete_confirmation.html'
+    model = Proyecto_Actividad
+    success_message = 'Eliminación exitosa'
+    extra_context = {
+        'title': _('Eliminar Tarea'),
+        'opciones': DISPLAYS['delete_form'],
+    }
+
+    def get_success_url(self):
+        fase = self.object.tarea.fase
+        return reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
+
+def combo_fase_tarea(request):
+    if request.user.has_perm('seguimiento:add_proyecto_actividad'):
+        tareas = Proyecto_Tarea.objects.filter(fase_id=request.GET.get('fase_id'))
+        return render(request, 'template/ajax_combo.html', {'options': tareas})
+        
+def accordion_tarea_actividad(request):
+    if request.user.has_perm('seguimiento:view_proyecto_tarea'):
+        fase = request.GET.get('fase')
+        campos_actividad = ['creacion', 'descripcion']
+        tareas = Proyecto_Tarea.objects.filter(fase_id=request.GET.get('obj_id'))
+        
+        context = {'fase': fase, 'tareas': tareas, 'campos': campos_actividad}
+        return render(request, 'seguimiento/accordion_for_fase.html', context)
 
 class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_comentario'

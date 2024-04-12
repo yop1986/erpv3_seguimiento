@@ -6,11 +6,16 @@ from django_ckeditor_5.widgets import CKEditor5Widget
 
 from usuarios.models import Usuario
 from .models import (Proyecto, Proyecto_Usuario, Proyecto_Objetivo, 
-    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Comentario)
+    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, 
+    Comentario)
 
 
 class DateInput(forms.DateInput):
     input_type = 'date'
+
+class DynamicChoiceField(forms.ChoiceField):
+    def clean(self, value):
+        return value
 
 
 class ProyectoForm(forms.ModelForm): 
@@ -108,6 +113,30 @@ class Proyecto_Tarea_ModelUpdateForm(forms.ModelForm):
             #self.fields['descripcion'].widget.attrs["readonly"] = True
             self.fields['fase'].queryset = fases
         except:
+            pass
+
+class Proyecto_Actividad_ModelForm(forms.ModelForm):
+    fase = DynamicChoiceField(label=_('Fase'))
+
+    class Meta:
+        model = Proyecto_Actividad
+        fields = ['fase', 'tarea', 'descripcion']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            if kwargs and kwargs['instance']:
+                tarea = kwargs['instance'].tarea
+                fases = [(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=tarea.fase.proyecto).order_by('descripcion')]
+                fases.insert(0, ('', '------------'))
+                self.initial['fase'] = tarea.fase.id
+                self.fields['tarea'].queryset = Proyecto_Tarea.objects.filter(fase=tarea.fase)
+            else:
+                fases = [(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=args[0]).order_by('descripcion')]
+                fases.insert(0, ('', '------------'))
+                self.fields['tarea'].queryset = Proyecto_Tarea.objects.none()
+            self.fields['fase'].choices = fases
+        except :
             pass
 
 class Proyecto_Usuario_ModelForm(forms.ModelForm):

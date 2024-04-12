@@ -34,6 +34,7 @@ urlpatterns = [
     path('proyecto/', views.ProyectoListView.as_view(), name='list_proyecto'),
     path('proyecto/nuevo/', views.ProyectoCreateView.as_view(), name='create_proyecto'),
     path('proyecto/ver/<uuid:pk>', views.ProyectoDetailView.as_view(), name='detail_proyecto'),
+    path('proyecto/ver/<uuid:pk>/<uuid:faseactiva>', views.ProyectoDetailView.as_view(), name='detail_proyecto'),
     path('proyecto/actualizar/<uuid:pk>', views.ProyectoUpdateView.as_view(), name='update_proyecto'),
     path('proyecto/eliminar/<uuid:pk>', views.ProyectoDeleteView.as_view(), name='delete_proyecto'),
 
@@ -56,6 +57,12 @@ urlpatterns = [
     path('tarea/nueva/', views.Proyecto_TareaFormView.as_view(), name='create_proyectotarea'),
     path('tarea/actualizar/<uuid:pk>', views.Proyecto_TareaUpdateView.as_view(), name='update_proyectotarea'),
     path('tarea/eliminar/<uuid:pk>', views.Proyecto_TareaDeleteView.as_view(), name='delete_proyectotarea'),
+
+    path('actividad/nueva/', views.Proyecto_ActividadFormView.as_view(), name='create_proyectoactividad'),
+    path('actividad/actualizar/<uuid:pk>', views.Proyecto_ActividadUpdateView.as_view(), name='update_proyectoactividad'),
+    path('actividad/eliminar/<uuid:pk>', views.Proyecto_ActividadDeleteView.as_view(), name='delete_proyectoactividad'),
+    path('fase/tarea/', views.combo_fase_tarea, name='combo_fasetarea'),
+    path('accordion/tarea/actividad/', views.accordion_tarea_actividad, name='accordion_tareaactividad'),
 
     path('comentario/nuevo/', views.Comentario_FormView.as_view(), name='create_comentario'),
     path('comentario/<uuid:pk>', views.ComentarioListView.as_view(), name='list_comentario'),

@@ -283,7 +283,7 @@ class Proyecto_Meta(models.Model):
 class Proyecto_Fase(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     correlativo = models.PositiveSmallIntegerField(verbose_name=_('Correlativo'))
-    descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180, blank=True)
+    descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180)
     creacion= models.DateField(_('Creación'), auto_now_add=True)
 
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
@@ -305,11 +305,6 @@ class Proyecto_Fase(models.Model):
         porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
         return round(porcentaje, 2)
 
-    def get_todas_tareas(self):
-        tareas_pendientes = Proyecto_Tarea.objects.filter(fase=self, finalizado__lt=100).annotate(custom_order=Value(1))
-        tareas_finalizadas= Proyecto_Tarea.objects.filter(fase=self, finalizado=100).annotate(custom_order=Value(0))
-        return tareas_pendientes.union(tareas_finalizadas).order_by('-custom_order', '-prioridad', 'creacion')
-
     def url_update(self):
         if self.proyecto.get_modificable():
             return reverse_lazy('seguimiento:update_proyectofase', kwargs={'pk': self.id})
@@ -328,7 +323,7 @@ class Proyecto_Tarea(models.Model):
         (30, 'Alta'),
     ]
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180, blank=True)
+    descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180)
     prioridad   = models.PositiveSmallIntegerField(default=10, choices=PRIORIDADES)
     complejidad = models.PositiveSmallIntegerField(verbose_name=_('Complejidad'), default=1,
         validators=[ MaxValueValidator(100), MinValueValidator(1) ], help_text=_('Complejidad de 1 a 100'))
@@ -356,6 +351,9 @@ class Proyecto_Tarea(models.Model):
             return reverse_lazy('seguimiento:delete_proyectotarea', kwargs={'pk': self.id})
         return None
 
+    def get_actividades(self):
+        return Proyecto_Actividad.objects.filter(tarea=self)
+
     def get_full_parent(self):
         return f'{self.fase.proyecto} > {self.fase.correlativo:02d}: {self.fase.descripcion}'
         
@@ -367,6 +365,24 @@ class Proyecto_Tarea(models.Model):
     def get_prioridad(self):
         return self.get_prioridad_display()
 
+class Proyecto_Actividad(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    creacion    = models.DateField(_('Creación'), auto_now_add=True)
+    descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180)
+    
+    tarea       = models.ForeignKey(Proyecto_Tarea, verbose_name=_('Tarea'), on_delete=models.RESTRICT)
+
+    history = HistoricalRecords(excluded_fields=['tarea'], user_model=settings.AUTH_USER_MODEL)
+
+    def __str__(self, max_length=60):
+        return f'{self.descripcion}'
+
+    def url_update(self):
+        return reverse_lazy('seguimiento:update_proyectoactividad', kwargs={'pk': self.id})
+        
+    def url_delete(self):
+        return reverse_lazy('seguimiento:delete_proyectoactividad', kwargs={'pk': self.id})
+        
 class Comentario(models.Model):
     TIPO_COMENTARIO =[
         ('P', _('Proyecto')),

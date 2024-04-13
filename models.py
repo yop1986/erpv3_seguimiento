@@ -391,6 +391,7 @@ class Comentario(models.Model):
         ('P', _('Proyecto')),
         ('T', _('Tarea')),
         ('F', _('Fase')),
+        ('A', _('Activdad')),
     ]
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = CKEditor5Field(verbose_name=_('Descripción'), blank=True, config_name='extends')
@@ -412,5 +413,7 @@ class Comentario(models.Model):
             return _('Fase: ') + f'{Proyecto_Fase.objects.get(id = self.obj_id)}'
         elif self.tipo == 'T':
             return _('Tarea: ') + f'{Proyecto_Tarea.objects.get(id = self.obj_id)}'
+        elif self.tipo == 'A':
+            return _('Actividad: ') + f'{Proyecto_Actividad.objects.get(id = self.obj_id)}'
         else:
             return None

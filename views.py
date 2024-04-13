@@ -1283,7 +1283,9 @@ class ComentarioListView(PersonalListView, SeguimientoContextMixin):
         proy = Proyecto.objects.get(pk=self.kwargs['pk'])
         fases= Proyecto_Fase.objects.filter(proyecto = proy).values_list('id')
         tareas = Proyecto_Tarea.objects.filter(fase__in=fases).values_list('id')
+        actividades = Proyecto_Actividad.objects.filter(tarea__in=tareas).values_list('id')
         
         return (Comentario.objects.filter(tipo='P', obj_id=proy.id) | 
             Comentario.objects.filter(tipo='F', obj_id__in=fases) |
-            Comentario.objects.filter(tipo='T', obj_id__in=tareas)).order_by('-creacion')
+            Comentario.objects.filter(tipo='T', obj_id__in=tareas) |
+            Comentario.objects.filter(tipo='A', obj_id__in=actividades)).order_by('-creacion')

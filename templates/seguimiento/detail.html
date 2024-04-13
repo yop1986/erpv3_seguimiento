@@ -205,11 +205,14 @@
 
 <script type="text/javascript" src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
 <script>
+    //Permite regresar a la fase activa que se estaba modificando
     $(document).ready(function() {
       var obj_id = "{{ faseactiva }}";
       $('button#fase[obj_id="' + obj_id +'"]').click();
     });
 
+    // objtiene la fase que se desea ver y se recarga la seccion 
+    // central para observar tareas y actividades
     $("button#fase").on('click', function(){
       var obj_id  = $(this).attr('obj_id');
       $.ajax({
@@ -224,7 +227,8 @@
       });
     });
 
-
+    // Permite modificar el combo de tarea con base en la fase seleccionada
+    // al momento de crear una actividad
     $("select#id_fase").on('change', function(){
       var fase_id = $(this).val()
       $.ajax({
@@ -237,20 +241,6 @@
           $('select#id_tarea').html(data)
         },
       });
-    });
-
-
-
-
-    $(".btn-primary").mouseenter(function(){
-      var valor = $(this).attr('title')
-      if (valor == 'Comentario'){
-        var id    = $(this).attr('obj_id')
-        var tipo  = $(this).attr('tipo')
-        //console.log('tipo >> objeto: '+tipo+' >> '+ id)
-        $('#comentario .modal-body form input#id_obj_id').val(id)
-        $('#comentario .modal-body form input#id_tipo').val(tipo)
-      }
     });
 </script>
 {% endblock %}

@@ -5,6 +5,11 @@
     <h2>{{ fase.descripcion }}</h2>
   </div>
   <div class="col">
+    {% if perms.seguimiento.add_comentario %}
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#comentario" data-bs-toggle="tooltip" data-bs-placement="top" title="Comentario" modal="comentario" tipo="F" obj_id="{{ fase.id }}">
+      <img src="{% static 'images/seguimiento_comentario_add.png' %}" alt="Comentario" height="25px">
+      </button>
+    {% endif %}
     {% if perms.seguimiento.change_proyecto_fase and fase.url_update%}
       <a href="{{ fase.url_update }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
         <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
@@ -24,7 +29,7 @@
     <h2 class="accordion-header" id="headingOne">
       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{forloop.counter}}" aria-expanded="false" aria-controls="collapse{{forloop.counter}}">
         <img src="{% static 'images/seguimiento_prioridad_' %}{{ tarea.prioridad }}.png" height="30px" alt="{{ tarea.get_prioridad_display }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ tarea.get_prioridad_display }}">
-        &nbsp; 
+        &nbsp;
       {% if perms.seguimiento.change_proyecto_actividad and tarea.url_update%}
         <a href="{{ tarea.url_update }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
           <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
@@ -53,7 +58,13 @@
               <td>{% get_object_value actividad campo %}</td>
             {% endfor %}
 
-              <td class="col-2">
+              <td class="col-3">
+              {% if perms.seguimiento.add_comentario %}
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#comentario" data-bs-toggle="tooltip" data-bs-placement="top" title="Comentario" modal="comentario" tipo="A" obj_id="{{ actividad.id }}">
+                <img src="{% static 'images/seguimiento_comentario_add.png' %}" alt="Comentario" height="25px">
+                </button>
+              {% endif %}
+
               {% if perms.seguimiento.update_proyecto_actividad and actividad.url_update %}
                 <a href="{{ actividad.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
                   <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
@@ -79,3 +90,16 @@
 {% endfor %}
 </div> 
 
+<script>
+  // Utiliza el JQuery de la pagina padre
+  // Permite modificar el comentario ajustando el tipo de objeto a comentar
+  $("button").mouseenter(function(){
+      var valor = $(this).attr('title')
+      if (valor == 'Comentario'){
+        var id    = $(this).attr('obj_id')
+        var tipo  = $(this).attr('tipo')
+        $('#comentario .modal-body form input#id_obj_id').val(id)
+        $('#comentario .modal-body form input#id_tipo').val(tipo)
+      }
+    });
+</script>

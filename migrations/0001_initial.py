@@ -216,7 +216,7 @@ class Migration(migrations.Migration):
                 ('descripcion', django_ckeditor_5.fields.CKEditor5Field(blank=True, verbose_name='Descripción')),
                 ('creacion', models.DateField(auto_now_add=True, verbose_name='Creación')),
                 ('usuario', models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, to=settings.AUTH_USER_MODEL, verbose_name='Usuario')),
-                ('proyecto', models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, to='seguimiento.proyecto', verbose_name='Proyecto')),
+                ('proyecto', models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, to='seguimiento.proyecto', verbose_name='Proyecto', default='fa2483c5-75f0-4de0-a799-942748f42086')),
             ],
         ),
         migrations.CreateModel(

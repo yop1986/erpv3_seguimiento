@@ -311,7 +311,6 @@ class Proyecto_Fase(models.Model):
         return None
 
     def url_delete(self):
-        tareas = Proyecto_Tarea.objects.filter(fase=self).count()
         if self.proyecto.get_modificable() and Proyecto_Tarea.objects.filter(fase=self).count()==0:
             return reverse_lazy('seguimiento:delete_proyectofase', kwargs={'pk': self.id})
         return None
@@ -342,12 +341,12 @@ class Proyecto_Tarea(models.Model):
         return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': self.fase.proyecto.id})
 
     def url_update(self):
-        if self.finalizado<100 and self.fase.proyecto.get_modificable():
+        if self.fase.proyecto.get_modificable():
             return reverse_lazy('seguimiento:update_proyectotarea', kwargs={'pk': self.id})
         return None
 
     def url_delete(self):
-        if self.finalizado<100 and self.fase.proyecto.get_modificable():
+        if Proyecto_Actividad.objects.filter(tarea=self).count()==0 and self.fase.proyecto.get_modificable():
             return reverse_lazy('seguimiento:delete_proyectotarea', kwargs={'pk': self.id})
         return None
 
@@ -378,10 +377,14 @@ class Proyecto_Actividad(models.Model):
         return f'{self.descripcion}'
 
     def url_update(self):
-        return reverse_lazy('seguimiento:update_proyectoactividad', kwargs={'pk': self.id})
-        
+        if self.tarea.fase.proyecto.get_modificable():
+            return reverse_lazy('seguimiento:update_proyectoactividad', kwargs={'pk': self.id})
+        return None
+
     def url_delete(self):
-        return reverse_lazy('seguimiento:delete_proyectoactividad', kwargs={'pk': self.id})
+        if self.tarea.fase.proyecto.get_modificable():
+            return reverse_lazy('seguimiento:delete_proyectoactividad', kwargs={'pk': self.id})
+        return None
         
 class Comentario(models.Model):
     TIPO_COMENTARIO =[

@@ -211,13 +211,11 @@
     });
 
     $("button#fase").on('click', function(){
-      var fase    = $(this).text();
       var obj_id  = $(this).attr('obj_id');
       $.ajax({
         url: "{% url 'seguimiento:accordion_tareaactividad' %}",
         type: 'get',
         data: {
-          'fase':   fase,
           'obj_id': obj_id,
         },
         success: function(data){

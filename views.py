@@ -697,7 +697,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'modal':    'proyecto_tarea', 
                             'display':  _('Definición de tareas'),
                             'link_img': 'seguimiento_tarea_add.png',
-                            'action':   reverse_lazy('seguimiento:create_proyectotarea')+'?next='+self.object.url_detail(),
+                            'action':   reverse_lazy('seguimiento:create_proyectotarea'),
                             'form':     Proyecto_Tarea_ModelCreateForm(self.object),
                             'opciones': DISPLAYS['forms'],
                         })
@@ -706,7 +706,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'modal':    'proyecto_actividad', 
                             'display':  _('Definición de actividades'),
                             'link_img': 'seguimiento_actividad.png',
-                            'action':   reverse_lazy('seguimiento:create_proyectoactividad')+'?next='+self.object.url_detail(),
+                            'action':   reverse_lazy('seguimiento:create_proyectoactividad'),
                             'form':     Proyecto_Actividad_ModelForm(self.object),
                             'opciones': DISPLAYS['forms'],
                         })
@@ -1008,38 +1008,29 @@ class Proyecto_FaseUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     template_name = 'template/forms.html'
     model = Proyecto_Fase
     fields = ['descripcion']
-    #form_class = 
-    #success_url = 
     success_message = 'Actualización exitosa'
     extra_context = {
         'title': _('Modificar Fase'),
         'opciones': DISPLAYS['forms'],
     }
 
-    def get_form_kwargs(self, **kwargs):
-        kwargs = super().get_form_kwargs()
-        redirect = self.request.GET.get('next')
-        if redirect:
-            self.success_url = redirect
-        return kwargs
+    def get_success_url(self):
+        return reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': self.object.proyecto.id, 'faseactiva': self.object.id})
 
 class Proyecto_FaseDeleteView(PersonalDeleteView, SeguimientoContextMixin):
     permission_required = 'seguimiento.delete_proyecto_fase'
     template_name = 'template/delete_confirmation.html'
     model = Proyecto_Fase
-    #success_url =
     success_message = 'Eliminación exitosa'
     extra_context = {
         'title': _('Eliminar Fase'),
         'opciones': DISPLAYS['delete_form'],
     }
 
-    def get_form_kwargs(self, **kwargs):
-        kwargs = super().get_form_kwargs()
-        redirect = self.request.GET.get('next')
-        if redirect:
-            self.success_url = redirect
-        return kwargs
+    def get_success_url(self):
+        return reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': self.object.proyecto.id})
 
 
 
@@ -1114,21 +1105,16 @@ class Proyecto_TareaUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     permission_required = 'seguimiento.change_proyecto_tarea'
     template_name = 'template/forms.html'
     model = Proyecto_Tarea
-    #fields = 
     form_class = Proyecto_Tarea_ModelUpdateForm
-    #success_url = 
     success_message = 'Actualización exitosa'
     extra_context = {
         'title': _('Modificar Tarea'),
         'opciones': DISPLAYS['forms'],
     }
 
-    def get_form_kwargs(self, **kwargs):
-        kwargs = super().get_form_kwargs()
-        redirect = self.request.GET.get('next')
-        if redirect:
-            self.success_url = redirect
-        return kwargs
+    def get_success_url(self):
+        return reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': self.object.fase.proyecto.id, 'faseactiva': self.object.fase.id})
 
 class Proyecto_TareaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
     permission_required = 'seguimiento.delete_proyecto_tarea'
@@ -1141,12 +1127,9 @@ class Proyecto_TareaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
         'opciones': DISPLAYS['delete_form'],
     }
 
-    def get_form_kwargs(self, **kwargs):
-        kwargs = super().get_form_kwargs()
-        redirect = self.request.GET.get('next')
-        if redirect:
-            self.success_url = redirect
-        return kwargs
+    def get_success_url(self):
+        return reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': self.object.fase.proyecto.id, 'faseactiva': self.object.fase.id})
 
 
 class Proyecto_ActividadFormView(PersonalFormView, SeguimientoContextMixin):
@@ -1220,12 +1203,13 @@ def combo_fase_tarea(request):
         
 def accordion_tarea_actividad(request):
     if request.user.has_perm('seguimiento:view_proyecto_tarea'):
-        fase = request.GET.get('fase')
+        fase = Proyecto_Fase.objects.get(id=request.GET.get('obj_id'))
         campos_actividad = ['creacion', 'descripcion']
-        tareas = Proyecto_Tarea.objects.filter(fase_id=request.GET.get('obj_id'))
+        tareas = Proyecto_Tarea.objects.filter(fase=fase)
         
         context = {'fase': fase, 'tareas': tareas, 'campos': campos_actividad}
         return render(request, 'seguimiento/accordion_for_fase.html', context)
+
 
 class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_comentario'

@@ -87,19 +87,7 @@ class Proyecto_Fase_ModelForm(forms.ModelForm):
         except:
             pass
 
-class Proyecto_Tarea_ModelCreateForm(forms.ModelForm):
-    class Meta:
-        model = Proyecto_Tarea
-        fields = ['fase', 'descripcion', 'prioridad', 'complejidad']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(**kwargs)
-        try:
-            self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=args[0]).order_by('correlativo')
-        except:
-            pass
-
-class Proyecto_Tarea_ModelUpdateForm(forms.ModelForm):
+class Proyecto_Tarea_ModelForm(forms.ModelForm):
     class Meta:
         model = Proyecto_Tarea
         fields = ['fase', 'descripcion', 'prioridad', 'complejidad', 'finalizado']
@@ -107,11 +95,13 @@ class Proyecto_Tarea_ModelUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
         try:
-            tarea = kwargs['instance']
-            fases = Proyecto_Fase.objects.filter(proyecto=tarea.fase.proyecto)
-            #self.fields['fase'].disabled = True
-            #self.fields['descripcion'].widget.attrs["readonly"] = True
-            self.fields['fase'].queryset = fases
+            if args and 'nuevo' in args:
+                self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=args[1], cerrado=False).order_by('correlativo')
+                self.fields['finalizado'].widget = forms.HiddenInput()
+            else:
+                self.fields['fase'].disabled = True
+                self.fields['fase'].widget.attrs["readonly"] = True
+                self.fields['fase'].queryset = kwargs['instance'].fase
         except:
             pass
 
@@ -127,12 +117,12 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
         try:
             if kwargs and kwargs['instance']:
                 tarea = kwargs['instance'].tarea
-                fases = [(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=tarea.fase.proyecto).order_by('descripcion')]
+                fases = [(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=tarea.fase.proyecto, cerrado=False).order_by('descripcion')]
                 fases.insert(0, ('', '------------'))
                 self.initial['fase'] = tarea.fase.id
                 self.fields['tarea'].queryset = Proyecto_Tarea.objects.filter(fase=tarea.fase)
             else:
-                fases = [(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=args[0]).order_by('descripcion')]
+                fases = [(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=args[0], cerrado=False).order_by('descripcion')]
                 fases.insert(0, ('', '------------'))
                 self.fields['tarea'].queryset = Proyecto_Tarea.objects.none()
             self.fields['fase'].choices = fases

@@ -285,6 +285,7 @@ class Proyecto_Fase(models.Model):
     correlativo = models.PositiveSmallIntegerField(verbose_name=_('Correlativo'))
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180)
     creacion= models.DateField(_('Creación'), auto_now_add=True)
+    cerrado = models.BooleanField(_('Cerrado'), default=False, help_text=_('Cierra de forma definitiva la fase (impide asignar nuevas tareas)'))
 
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 

@@ -17,9 +17,8 @@ from .models import (Estado, Tipo_Proyecto, Origen_Proyecto, PM_Proyecto, Proyec
     Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, Proyecto_Pendiente, 
     Comentario)
 from .forms import (ProyectoForm, Proyecto_Objetivo_ModelForm, Proyecto_Meta_ModelForm,
-    Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelCreateForm, Proyecto_Tarea_ModelUpdateForm,
-    Proyecto_Usuario_ModelForm, Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm,
-    Proyecto_Pendiente_ModelForm)
+    Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelForm, Proyecto_Usuario_ModelForm, 
+    Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm, Proyecto_Pendiente_ModelForm)
 
 #gConfiguracion = Configuracion()
 
@@ -700,7 +699,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'display':  _('Definición de tareas'),
                             'link_img': 'seguimiento_tarea_add.png',
                             'action':   reverse_lazy('seguimiento:create_proyectotarea'),
-                            'form':     Proyecto_Tarea_ModelCreateForm(self.object),
+                            'form':     Proyecto_Tarea_ModelForm('nuevo', self.object),
                             'opciones': DISPLAYS['forms'],
                         })
         if self.request.user.has_perm('seguimiento.add_proyecto_actividad'):
@@ -1018,7 +1017,7 @@ class Proyecto_FaseUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     permission_required = 'seguimiento.change_proyecto_fase'
     template_name = 'template/forms.html'
     model = Proyecto_Fase
-    fields = ['descripcion']
+    fields = ['descripcion', 'cerrado']
     success_message = 'Actualización exitosa'
     extra_context = {
         'title': _('Modificar Fase'),
@@ -1083,7 +1082,7 @@ class Proyecto_TareaFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_tarea'
     template_name = 'template/forms.html'
     model = Proyecto_Tarea
-    form_class = Proyecto_Tarea_ModelCreateForm
+    form_class = Proyecto_Tarea_ModelForm
     success_url = reverse_lazy('seguimiento:list_proyecto')
     success_message = _('Tarea ingresada correctamente')
     extra_context = {
@@ -1116,7 +1115,7 @@ class Proyecto_TareaUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     permission_required = 'seguimiento.change_proyecto_tarea'
     template_name = 'template/forms.html'
     model = Proyecto_Tarea
-    form_class = Proyecto_Tarea_ModelUpdateForm
+    form_class = Proyecto_Tarea_ModelForm
     success_message = 'Actualización exitosa'
     extra_context = {
         'title': _('Modificar tarea'),

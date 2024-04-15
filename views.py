@@ -3,7 +3,7 @@ from itertools import chain
 
 from django.apps import apps
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Case, When, BooleanField
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils.translation import gettext as _
@@ -14,10 +14,12 @@ from usuarios.personal_views import (PersonalContextMixin, PersonalCreateView,
     PersonalFormView, Configuracion)
 
 from .models import (Estado, Tipo_Proyecto, Origen_Proyecto, PM_Proyecto, Proyecto, Proyecto_Objetivo, 
-    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, Comentario)
+    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, Proyecto_Pendiente, 
+    Comentario)
 from .forms import (ProyectoForm, Proyecto_Objetivo_ModelForm, Proyecto_Meta_ModelForm,
     Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelCreateForm, Proyecto_Tarea_ModelUpdateForm,
-    Proyecto_Usuario_ModelForm, Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm)
+    Proyecto_Usuario_ModelForm, Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm,
+    Proyecto_Pendiente_ModelForm)
 
 #gConfiguracion = Configuracion()
 
@@ -614,8 +616,8 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
     extra_context = {
         'title': _('Proyecto'),
         'campos': {
-            'lista': [ 'nombre', 'descripcion', 'creacion', 'actualizacion',
-                'lider', 'estado', 'tipo', 'origen', 'pm', ],
+            'lista': [ 'nombre', 'lider', 'estado', 'tipo', 
+                'origen', 'pm', ],
             'opciones': _('Opciones'),
         },
         'opciones': DISPLAYS['opciones'],
@@ -634,11 +636,11 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['faseactiva'] = self.kwargs['faseactiva'] if 'faseactiva' in self.kwargs else None
+        context['pendientes'] = self.kwargs['pendientes'] if 'pendientes' in self.kwargs else None
         context['campos_extra'] = [
             { 'nombre': _('Periodo'), 'funcion': 'get_periodo' },
             { 'nombre': _('Publico'), 'funcion': 'get_tipo_permiso', },
             { 'nombre': _('Completado'), 'funcion': 'get_porcentaje_completado', },
-            { 'nombre': _('Usuarios'), 'ul_lista': self.object.get_usuarios() },
         ]
         context['permisos'] = {
             'update': self.request.user.has_perm('seguimiento.change_proyecto'),
@@ -708,6 +710,15 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'link_img': 'seguimiento_actividad.png',
                             'action':   reverse_lazy('seguimiento:create_proyectoactividad'),
                             'form':     Proyecto_Actividad_ModelForm(self.object),
+                            'opciones': DISPLAYS['forms'],
+                        })
+        if self.request.user.has_perm('seguimiento.add_proyecto_pendiente'):
+            formularios.append({
+                            'modal':    'proyecto_pendiente', 
+                            'display':  _('Agregar pendientes'),
+                            'link_img': 'seguimiento_pendiente.png',
+                            'action':   reverse_lazy('seguimiento:create_proyectopendiente')+'?next='+self.object.url_detail(),
+                            'form':     Proyecto_Pendiente_ModelForm('nuevo', instance=Proyecto_Pendiente(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
         if self.request.user.has_perm('seguimiento.proyect_admin'):
@@ -1092,8 +1103,8 @@ class Proyecto_TareaFormView(PersonalFormView, SeguimientoContextMixin):
         fase = Proyecto_Fase.objects.get(id = data['fase'].id)
         self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
             kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
-        proyecto_fase = Proyecto_Tarea(**data)
-        proyecto_fase.save()
+        proyecto_tarea = Proyecto_Tarea(**data)
+        proyecto_tarea.save()
         return super().form_valid(form)
 
     def form_invalid(self, form):
@@ -1108,7 +1119,7 @@ class Proyecto_TareaUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     form_class = Proyecto_Tarea_ModelUpdateForm
     success_message = 'Actualización exitosa'
     extra_context = {
-        'title': _('Modificar Tarea'),
+        'title': _('Modificar tarea'),
         'opciones': DISPLAYS['forms'],
     }
 
@@ -1123,7 +1134,7 @@ class Proyecto_TareaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
     #success_url =
     success_message = 'Eliminación exitosa'
     extra_context = {
-        'title': _('Eliminar Tarea'),
+        'title': _('Eliminar tarea'),
         'opciones': DISPLAYS['delete_form'],
     }
 
@@ -1156,8 +1167,8 @@ class Proyecto_ActividadFormView(PersonalFormView, SeguimientoContextMixin):
         fase = Proyecto_Fase.objects.get(id = data.pop('fase'))
         self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
             kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
-        proyecto_fase = Proyecto_Actividad(**data)
-        proyecto_fase.save()
+        proyecto_actividad = Proyecto_Actividad(**data)
+        proyecto_actividad.save()
         return super().form_valid(form)
 
     def form_invalid(self, form):
@@ -1202,13 +1213,97 @@ def combo_fase_tarea(request):
         return render(request, 'template/ajax_combo.html', {'options': tareas})
         
 def accordion_tarea_actividad(request):
-    if request.user.has_perm('seguimiento:view_proyecto_tarea'):
+    if request.user.has_perm('seguimiento.view_proyecto_tarea'):
         fase = Proyecto_Fase.objects.get(id=request.GET.get('obj_id'))
         campos_actividad = ['creacion', 'descripcion']
-        tareas = Proyecto_Tarea.objects.filter(fase=fase)
+        tareas = Proyecto_Tarea.objects.filter(fase=fase)\
+            .annotate(fin=Case(When(finalizado=100, then=True), default=False, output_field=BooleanField(),))\
+            .order_by('fin', 'prioridad')
         
         context = {'fase': fase, 'tareas': tareas, 'campos': campos_actividad}
         return render(request, 'seguimiento/accordion_for_fase.html', context)
+
+def tabla_pendiente(request):
+    if request.user.has_perm('seguimiento.view_proyecto_pendiente'):
+        pendientes = Proyecto_Pendiente.objects.filter(proyecto_id=request.GET.get('obj_id'))\
+            .order_by('finalizado')
+        context = {
+            'table': {
+                'title': _('Pendientes'),
+                'object_list': pendientes,
+                'lista': ['creacion', 'descripcion', 'responsable'],
+                'campos_extra': [{'nombre': _('Estado'), 'funcion': 'get_estado'}],
+                'opciones': _('Opciones'),
+                'permisos': {
+                    'update':   request.user.has_perm('seguimiento.change_proyecto_pendiente'),
+                    'update_img': 'seguimiento_update.png',
+                    'delete':   request.user.has_perm('seguimiento.delete_proyecto_pendiente'),
+                    'delete_img': 'seguimiento_delete.png',
+                },
+            }
+        }
+        return render(request, 'template/tables.html', context)
+
+class Proyecto_PendienteFormView(PersonalFormView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.add_proyecto_pendiente'
+    template_name = 'template/forms.html'
+    model = Proyecto_Pendiente
+    form_class = Proyecto_Pendiente_ModelForm
+    success_url = reverse_lazy('seguimiento:list_proyecto')
+    success_message = _('Pendiente ingresado correctamente')
+    extra_context = {
+        'title': _('Ingreso de actividad pendiente'),
+        'opciones': DISPLAYS['forms'],
+    }
+
+    def get_form_kwargs(self, **kwargs):
+        kwargs = super().get_form_kwargs()
+        redirect = self.request.GET.get('next')
+        if redirect:
+            self.success_url = redirect
+        return kwargs
+
+    def form_valid(self, form, *args, **kwargs):
+        data = form.cleaned_data
+        self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': data['proyecto'].id, 'pendientes': 'pendientes'})
+        proyecto_pendiente = Proyecto_Pendiente(**data)
+        proyecto_pendiente.save()
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        for error in form.errors.get("__all__"):
+            messages.error(self.request, error)
+        return redirect(self.success_url)
+
+class Proyecto_PendienteUpdateView(PersonalUpdateView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.change_proyecto_pendiente'
+    template_name = 'template/forms.html'
+    model = Proyecto_Pendiente
+    form_class = Proyecto_Pendiente_ModelForm
+    success_message = 'Actualización exitosa'
+    extra_context = {
+        'title': _('Modificar pendiente'),
+        'opciones': DISPLAYS['forms'],
+    }
+
+    def get_success_url(self):
+        return reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': self.object.proyecto.id, 'pendientes': 'pendientes'})
+
+class Proyecto_PendienteDeleteView(PersonalDeleteView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.delete_proyecto_pendiente'
+    template_name = 'template/delete_confirmation.html'
+    model = Proyecto_Pendiente
+    success_message = 'Eliminación exitosa'
+    extra_context = {
+        'title': _('Eliminar pendiente'),
+        'opciones': DISPLAYS['delete_form'],
+    }
+
+    def get_success_url(self):
+        return reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': self.object.proyecto.id, 'pendientes': 'pendientes'})
 
 
 class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):

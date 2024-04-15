@@ -355,7 +355,13 @@ class Proyecto_Tarea(models.Model):
 
     def get_full_parent(self):
         return f'{self.fase.proyecto} > {self.fase.correlativo:02d}: {self.fase.descripcion}'
-        
+    
+    def get_imagen(self):
+        if self.finalizado==100:
+            return 'seguimiento_tarea_finalizada.png'
+        else: 
+            return f'seguimiento_prioridad_{self.prioridad}.png'
+
     @property
     def get_finalizado(self):
         return f'{self.finalizado}%'
@@ -385,7 +391,37 @@ class Proyecto_Actividad(models.Model):
         if self.tarea.fase.proyecto.get_modificable():
             return reverse_lazy('seguimiento:delete_proyectoactividad', kwargs={'pk': self.id})
         return None
-        
+
+class Proyecto_Pendiente(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    creacion    = models.DateField(_('Creación'), auto_now_add=True)
+    actualizacion = models.DateField(_('Actualizacion'), auto_now=True)
+    descripcion = models.CharField(_('Descripción'), max_length=180)
+    responsable = models.CharField(_('Responsable'), max_length=180)
+    finalizado  = models.BooleanField(_('Finalizado'), default=False)
+
+    proyecto    = models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
+
+    history     = HistoricalRecords(excluded_fields=['proyecto'], user_model=settings.AUTH_USER_MODEL)
+
+    def __str__(self, max_length=60):
+        return f'{self.descripcion}'
+
+    def get_estado(self):
+        if self.finalizado:
+            return _('Resuelto')
+        return _('Pendiente')
+
+    def url_update(self):
+        if self.proyecto.get_modificable():
+            return reverse_lazy('seguimiento:update_proyectopendiente', kwargs={'pk': self.id})
+        return None
+
+    def url_delete(self):
+        if self.proyecto.get_modificable():
+            return reverse_lazy('seguimiento:delete_proyectopendiente', kwargs={'pk': self.id})
+        return None
+
 class Comentario(models.Model):
     TIPO_COMENTARIO =[
         ('P', _('Proyecto')),
@@ -417,3 +453,5 @@ class Comentario(models.Model):
             return _('Actividad: ') + f'{Proyecto_Actividad.objects.get(id = self.obj_id)}'
         else:
             return None
+
+

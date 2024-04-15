@@ -7,7 +7,7 @@ from django_ckeditor_5.widgets import CKEditor5Widget
 from usuarios.models import Usuario
 from .models import (Proyecto, Proyecto_Usuario, Proyecto_Objetivo, 
     Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, 
-    Comentario)
+    Proyecto_Pendiente, Comentario)
 
 
 class DateInput(forms.DateInput):
@@ -139,11 +139,24 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
         except :
             pass
 
+class Proyecto_Pendiente_ModelForm(forms.ModelForm):
+    class Meta:
+        model = Proyecto_Pendiente
+        fields = ['descripcion', 'responsable', 'finalizado', 'proyecto']
+        widgets = {'proyecto': forms.HiddenInput()}
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            if args and 'nuevo' in args:
+                self.fields['finalizado'].widget = forms.HiddenInput()
+        except :
+            pass
+
 class Proyecto_Usuario_ModelForm(forms.ModelForm):
     class Meta:
         model = Proyecto_Usuario
         fields = ['proyecto', 'usuario']
-        #widgets = {'proyecto': forms.HiddenInput()}
        
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)

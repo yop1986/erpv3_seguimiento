@@ -28,7 +28,7 @@
   <div class="accordion-item">
     <h2 class="accordion-header" id="headingOne">
       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{forloop.counter}}" aria-expanded="false" aria-controls="collapse{{forloop.counter}}">
-        <img src="{% static 'images/seguimiento_prioridad_' %}{{ tarea.prioridad }}.png" height="30px" alt="{{ tarea.get_prioridad_display }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ tarea.get_prioridad_display }}">
+        <img src="{% static 'images/' %}{{ tarea.get_imagen }}" height="30px" alt="{{ tarea.get_prioridad_display }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ tarea.get_prioridad_display }}">
         &nbsp;
       {% if perms.seguimiento.change_proyecto_actividad and tarea.url_update%}
         <a href="{{ tarea.url_update }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">

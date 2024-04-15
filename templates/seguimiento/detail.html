@@ -6,8 +6,11 @@
 {% block content %}
     <div class="row align-items-start">
       <div class="col-10">
-        <h1>{% if title %}{{ title }}:{% endif %} {{ object }}</h1>
+        <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapsdescripcion" aria-expanded="false" aria-controls="collapsdescripcion">
+          <h1>{% if title %}{{ title }}:{% endif %} {{ object }}</h1>
+        </button>
       </div>
+
       <div class="col text-center">
         
     {% if botones_extra %}
@@ -19,6 +22,30 @@
         {% endif %}
       {% endfor %}
     {% endif %}
+      </div>
+    </div>
+
+    <div class="collapse" id="collapsdescripcion">
+      <div class="card card-body">
+        {% get_object_value object 'descripcion' %}
+        
+        <hr width="30%">
+        
+        <ul>
+          {% for elemento in object.get_usuarios %}
+          <li> 
+            <form class="row g-3" method="post" action="{% url 'seguimiento:delete_proyectousuario' elemento.id %}?next={% url 'seguimiento:detail_proyecto' object.id %}">
+              {% csrf_token %}
+              <div class="col-auto">
+              <input type="submit" value="X" name="" class="btn btn-danger btn-sm">
+              </div>
+              <div class="col-auto">
+              {{ elemento.usuario }}
+              </div> 
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
 
@@ -175,9 +202,15 @@
   <hr width="95%">
 
 <div class="row">
+    
     <div class="col-3">
+    <div class="row">
+      <button id="pendiente" type="button" class="btn btn-light" obj_id="{{ object.id }}">
+        Pendientes
+      </button>
+    </div>
+    <hr>
     {% if fases %}
-
       {% for fase in fases %}
       <div class="row">
         <button id="fase" type="button" class="btn btn-light" obj_id="{{ fase.id }}">
@@ -186,12 +219,14 @@
       </div>
       {% endfor %}
     {% endif %}
+
     </div>
     <div class="col" id="col_tarea">
       {% if faseactiva %}
         <div id="faseactiva" obj_id="{{ faseactiva }}">{{ faseactiva }}</div>
       {% endif %}
     </div>
+
 </div>
 
     {% for table in manual_tables %}
@@ -207,8 +242,28 @@
 <script>
     //Permite regresar a la fase activa que se estaba modificando
     $(document).ready(function() {
-      var obj_id = "{{ faseactiva }}";
-      $('button#fase[obj_id="' + obj_id +'"]').click();
+      var faseactiva = "{{ faseactiva }}";
+      var pendientes = "{{ pendientes }}";
+      if (faseactiva != 'None') {
+        $('button#fase[obj_id="' + faseactiva +'"]').click();
+      } else if (pendientes != 'None') {
+        $('button#pendiente').click();
+      }
+    });
+
+    // obtiene los pendientes que se desea ver y se recarga la seccion central
+    $("button#pendiente").on('click', function(){
+      var obj_id  = $(this).attr('obj_id');
+      $.ajax({
+        url: "{% url 'seguimiento:tabla_pendiente' %}",
+        type: 'get',
+        data: {
+          'obj_id': obj_id,
+        },
+        success: function(data){
+          $('div#col_tarea').html(data)
+        },
+      });
     });
 
     // objtiene la fase que se desea ver y se recarga la seccion 

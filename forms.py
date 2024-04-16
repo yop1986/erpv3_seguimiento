@@ -96,12 +96,12 @@ class Proyecto_Tarea_ModelForm(forms.ModelForm):
         super().__init__(**kwargs)
         try:
             if args and 'nuevo' in args:
-                self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=args[1], cerrado=False).order_by('correlativo')
+                self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=args[1], cerrado=False).order_by('descripcion')
                 self.fields['finalizado'].widget = forms.HiddenInput()
-            else:
+            elif kwargs['instance']:
+                self.fields['fase'].queryset = Proyecto_Fase.objects.filter(id = kwargs['instance'].fase.id)
                 self.fields['fase'].disabled = True
                 self.fields['fase'].widget.attrs["readonly"] = True
-                self.fields['fase'].queryset = kwargs['instance'].fase
         except:
             pass
 

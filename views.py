@@ -986,7 +986,6 @@ class Proyecto_MetaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
 class Proyecto_FaseFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_fase'
     template_name = 'template/forms.html'
-    model = Proyecto_Fase
     form_class = Proyecto_Fase_ModelForm
     success_url = reverse_lazy('seguimiento:list_proyecto')
     success_message = _('Fase ingresada correctamente')
@@ -1081,7 +1080,6 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
 class Proyecto_TareaFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_tarea'
     template_name = 'template/forms.html'
-    model = Proyecto_Tarea
     form_class = Proyecto_Tarea_ModelForm
     success_url = reverse_lazy('seguimiento:list_proyecto')
     success_message = _('Tarea ingresada correctamente')
@@ -1145,7 +1143,6 @@ class Proyecto_TareaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
 class Proyecto_ActividadFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_actividad'
     template_name = 'template/forms.html'
-    model = Proyecto_Actividad
     form_class = Proyecto_Actividad_ModelForm
     success_url = reverse_lazy('seguimiento:list_proyecto')
     success_message = _('Actividad ingresada correctamente')
@@ -1246,7 +1243,6 @@ def tabla_pendiente(request):
 class Proyecto_PendienteFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_pendiente'
     template_name = 'template/forms.html'
-    model = Proyecto_Pendiente
     form_class = Proyecto_Pendiente_ModelForm
     success_url = reverse_lazy('seguimiento:list_proyecto')
     success_message = _('Pendiente ingresado correctamente')
@@ -1308,7 +1304,6 @@ class Proyecto_PendienteDeleteView(PersonalDeleteView, SeguimientoContextMixin):
 class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_comentario'
     template_name = 'template/forms.html'
-    model = Comentario
     form_class = Proyecto_Comentario_ModelForm
     success_url = reverse_lazy('seguimiento:list_proyecto')
     success_message = _('Comentario agregado correctamente')

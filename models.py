@@ -298,7 +298,7 @@ class Proyecto_Fase(models.Model):
         ]
 
     def __str__(self, max_length=60):
-        return f'{self.correlativo:02d}: {self.descripcion}'
+        return f'{self.descripcion}'
 
     def get_porcentaje_completado(self):
         total_complejidad = Proyecto_Tarea.objects.filter(fase=self).aggregate(total=Sum('complejidad'))['total']
@@ -399,7 +399,7 @@ class Proyecto_Pendiente(models.Model):
     actualizacion = models.DateField(_('Actualizacion'), auto_now=True)
     descripcion = models.CharField(_('Descripción'), max_length=180)
     responsable = models.CharField(_('Responsable'), max_length=180)
-    finalizado  = models.BooleanField(_('Finalizado'), default=False)
+    finalizado  = models.BooleanField(_('Resuelto'), default=False)
 
     proyecto    = models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 

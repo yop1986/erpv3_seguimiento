@@ -100,6 +100,7 @@
         </div>
 
         <div class="col">
+          {% if not permisos.bloqueado %}
             {% for form in forms %}
               {% if form.action %}
               <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#{{ form.modal }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ form.display }}" modal="{{ form.modal }}" tipo="{{ form.tipo }}" obj_id="{{ form.id }}">
@@ -107,6 +108,7 @@
               </button>
               {% endif %}
             {% endfor %}
+          {% endif %}
 
             {% if permisos.update and object.url_update %}
             <a href="{{ object.url_update }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
@@ -243,10 +245,10 @@
     //Permite regresar a la fase activa que se estaba modificando
     $(document).ready(function() {
       var faseactiva = "{{ faseactiva }}";
-      var pendientes = "{{ pendientes }}";
+      var opcion = "{{ opcion }}";
       if (faseactiva != 'None') {
         $('button#fase[obj_id="' + faseactiva +'"]').click();
-      } else if (pendientes != 'None') {
+      } else if (opcion == 'pendientes') {
         $('button#pendiente').click();
       }
     });

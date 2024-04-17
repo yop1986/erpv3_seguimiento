@@ -132,13 +132,14 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
 class Proyecto_Pendiente_ModelForm(forms.ModelForm):
     class Meta:
         model = Proyecto_Pendiente
-        fields = ['descripcion', 'responsable', 'finalizado', 'proyecto']
+        fields = ['descripcion', 'responsable', 'resolucion', 'finalizado', 'proyecto']
         widgets = {'proyecto': forms.HiddenInput()}
         
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
         try:
             if args and 'nuevo' in args:
+                self.fields['resolucion'].widget = forms.HiddenInput()
                 self.fields['finalizado'].widget = forms.HiddenInput()
         except :
             pass

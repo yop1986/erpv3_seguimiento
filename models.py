@@ -17,11 +17,11 @@ from usuarios.personal_views import Configuracion
 
 conf = Configuracion()
 
-class Estado (models.Model):
+class Estado(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion  = models.CharField(verbose_name=_('Descripción'), max_length=30, unique=True)
     bloquea = models.BooleanField(_('Bloquea modificaciones'), default=False, help_text=_('Determina si bloquea modificaciones'))
-    vigente    = models.BooleanField(_('Vigente'), default=True)
+    vigente    = models.BooleanField(_('Estado'), default=True)
     actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
 
     history = HistoricalRecords(excluded_fields=['actualizacion'], user_model=settings.AUTH_USER_MODEL)
@@ -223,7 +223,7 @@ class Proyecto_Usuario(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Usuario'), on_delete=models.RESTRICT)  
-    history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=[], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self):
         return self.usuario
@@ -232,11 +232,12 @@ class Proyecto_Objetivo(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180, blank=True)
     alcanzado   = models.BooleanField(verbose_name=_('Alcanzado'), default=False)
-    creacion= models.DateField(_('Creación'), auto_now_add=True)
+    creacion    = models.DateField(_('Creación'), auto_now_add=True)
+    actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
 
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['creacion', 'proyecto'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['creacion', 'proyecto', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.proyecto}:{self.descripcion[:max_length]}...'
@@ -258,11 +259,12 @@ class Proyecto_Meta(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180, blank=True)
     alcanzado   = models.BooleanField(verbose_name=_('Alcanzado'), default=False)
-    creacion= models.DateField(_('Creación'), auto_now_add=True)
+    creacion    = models.DateField(_('Creación'), auto_now_add=True)
+    actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
 
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['creacion', 'proyecto'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['creacion', 'proyecto', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.proyecto}:{self.descripcion[:max_length]}...'
@@ -327,13 +329,14 @@ class Proyecto_Tarea(models.Model):
     prioridad   = models.PositiveSmallIntegerField(default=10, choices=PRIORIDADES)
     complejidad = models.PositiveSmallIntegerField(verbose_name=_('Complejidad'), default=1,
         validators=[ MaxValueValidator(100), MinValueValidator(1) ], help_text=_('Complejidad de 1 a 100'))
-    creacion    = models.DateField(_('Creación'), auto_now_add=True)
     finalizado  = models.PositiveSmallIntegerField(verbose_name=_('% Completado'), default=0,
         validators=[ MaxValueValidator(100), MinValueValidator(0) ], help_text=_('Porcentaje de activdad completada de 0 - 100%'))
+    creacion    = models.DateField(_('Creación'), auto_now_add=True)
+    actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
 
     fase    = models.ForeignKey(Proyecto_Fase, verbose_name=_('Fase'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['creacion', 'fase'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['creacion', 'fase', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
@@ -341,6 +344,10 @@ class Proyecto_Tarea(models.Model):
     def url_proyecto(self):
         return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': self.fase.proyecto.id})
 
+    def url_detail(self):
+        fase = self.fase
+        return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
+        
     def url_update(self):
         if self.fase.proyecto.get_modificable():
             return reverse_lazy('seguimiento:update_proyectotarea', kwargs={'pk': self.id})
@@ -373,12 +380,13 @@ class Proyecto_Tarea(models.Model):
 
 class Proyecto_Actividad(models.Model):
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    creacion    = models.DateField(_('Creación'), auto_now_add=True)
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180)
+    creacion    = models.DateField(_('Creación'), auto_now_add=True)
+    actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
     
     tarea       = models.ForeignKey(Proyecto_Tarea, verbose_name=_('Tarea'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['tarea'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['tarea', 'creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
@@ -395,15 +403,17 @@ class Proyecto_Actividad(models.Model):
 
 class Proyecto_Pendiente(models.Model):
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    descripcion = models.CharField(_('Descripción'), max_length=180)
+    resolucion  = CKEditor5Field(verbose_name=_('Resolución'), blank=True, config_name='extends')
+    responsable = models.CharField(_('Responsable'), max_length=180)
     creacion    = models.DateField(_('Creación'), auto_now_add=True)
     actualizacion = models.DateField(_('Actualizacion'), auto_now=True)
-    descripcion = models.CharField(_('Descripción'), max_length=180)
-    responsable = models.CharField(_('Responsable'), max_length=180)
+
     finalizado  = models.BooleanField(_('Resuelto'), default=False)
 
     proyecto    = models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 
-    history     = HistoricalRecords(excluded_fields=['proyecto'], user_model=settings.AUTH_USER_MODEL)
+    history     = HistoricalRecords(excluded_fields=['proyecto', 'creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
@@ -438,10 +448,23 @@ class Comentario(models.Model):
 
     usuario    = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Usuario'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['creacion', 'usuario', 'proyecto'], user_model=settings.AUTH_USER_MODEL)
-
     def __str__(self, max_length=60):
         return f'({ self.get_objeto() }) { self.descripcion }'
+
+    def url_detail(self):
+        if self.tipo == 'P':
+            return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': self.obj_id})
+        if self.tipo == 'F':
+            fase = Proyecto_Fase.objects.get(id = self.obj_id)
+            return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
+        if self.tipo == 'T':
+            fase = Proyecto_Tarea.objects.get(id = self.obj_id).fase
+            return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
+        if self.tipo == 'A':
+            fase = Proyecto_Actividad.objects.get(id = self.obj_id).tarea.fase
+            return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
+        return None
+
 
     def get_objeto(self):
         if self.tipo == 'P':

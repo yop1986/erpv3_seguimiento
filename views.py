@@ -9,6 +9,7 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext as _
 from django.views.generic.base import TemplateView
 
+from usuarios.models import Usuario
 from usuarios.personal_views import (PersonalContextMixin, PersonalCreateView, 
     PersonalUpdateView, PersonalListView, PersonalDetailView, PersonalDeleteView, 
     PersonalFormView, Configuracion)
@@ -634,14 +635,17 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
+        estado_bloqueado = self.object.estado.bloquea
+
         context['faseactiva'] = self.kwargs['faseactiva'] if 'faseactiva' in self.kwargs else None
-        context['pendientes'] = self.kwargs['pendientes'] if 'pendientes' in self.kwargs else None
+        context['opcion'] = self.kwargs['opcion'] if 'opcion' in self.kwargs else None
         context['campos_extra'] = [
             { 'nombre': _('Periodo'), 'funcion': 'get_periodo' },
             { 'nombre': _('Publico'), 'funcion': 'get_tipo_permiso', },
             { 'nombre': _('Completado'), 'funcion': 'get_porcentaje_completado', },
         ]
         context['permisos'] = {
+            'bloqueado': estado_bloqueado,
             'update': self.request.user.has_perm('seguimiento.change_proyecto'),
             'delete': self.request.user.has_perm('seguimiento.delete_proyecto'),
         }
@@ -782,13 +786,14 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
 
         if self.object.ffin < date.today():
             messages.add_message(self.request, messages.WARNING, _('Proyecto expiró'))
+        if estado_bloqueado:
+            messages.add_message(self.request, messages.WARNING, _('El proyecto está en un estado bloqueado'))
         return context
 
 class ProyectoUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     permission_required = 'seguimiento.change_proyecto'
     template_name = 'template/forms.html'
     model = Proyecto
-    #fields = []
     form_class = ProyectoForm
     extra_context = {
         'title': _('Modificar Proyecto'),
@@ -851,6 +856,7 @@ class Proyecto_UsuarioDeleteView(PersonalDeleteView, SeguimientoContextMixin):
         if redirect:
             self.success_url = redirect
         return kwargs
+
 
 
 class Proyecto_ObjetivoFormView(PersonalFormView, SeguimientoContextMixin):
@@ -1054,21 +1060,41 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
         'campos': {
             'enumerar': 1,
             'lista': [ 'descripcion', ],
+            'opciones': _('Opciones'),
         },
+        'opciones': DISPLAYS['opciones'],
         'campos_extra': [
             { 'nombre': _('Fase'), 'funcion': 'get_full_parent', },
             { 'nombre': _('% Completado'), 'valor': 'get_finalizado', },
             { 'nombre': _('Prioridad'), 'valor': 'get_prioridad', },
-            { 'nombre': _('Ir'), 'url': 'url_proyecto', 'target': '_blank', 'img': 'seguimiento_ir.png'},
         ],
         'mensaje': {
             'vacio': DISPLAYS['tabla_vacia'],
         },
+        'busqueda': {
+            'buscar':   _('Buscar'),
+            'limpiar':  _('Limpiar'),
+        },
     }
 
     def get_queryset(self):
+        try:
+            valor_busqueda = self.request.GET.get('valor').lower()
+        except:
+            valor_busqueda = None
+
         queryset = super().get_queryset().filter(finalizado__lt = 100)
-        queryset = queryset.select_related('fase')
+        
+        if valor_busqueda:
+            if 'fase:' in valor_busqueda:
+                fases = Proyecto_Fase.objects.filter(descripcion__icontains=valor_busqueda[5:].replace(' ', ''))
+                queryset = queryset.filter(fase__in=fases)
+            elif 'proyecto:' in valor_busqueda:
+                proyectos = Proyecto.objects.filter(Q(nombre__icontains=valor_busqueda[9:])|Q(descripcion__icontains=valor_busqueda[9:]))
+                queryset = queryset.filter(fase__proyecto__in=proyectos)
+            else:
+                queryset = queryset.filter(descripcion__icontains=valor_busqueda)
+
         if self.request.user.has_perm('seguimiento.proyect_admin'):
             return queryset
         asignados = Proyecto_Usuario.objects.filter(usuario = self.request.user).values_list('proyecto', flat=True) 
@@ -1076,6 +1102,32 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
 
         queryset = queryset.filter(fase__proyecto__in = chain(asignados, publicos))
         return queryset
+
+
+
+
+        
+        proy = Proyecto.objects.filter(pk=self.kwargs['pk'])
+        fases= Proyecto_Fase.objects.filter(proyecto__in = proy).values_list('id')
+        tareas = Proyecto_Tarea.objects.filter(fase__in=fases).values_list('id')
+        actividades = Proyecto_Actividad.objects.filter(tarea__in=tareas).values_list('id')
+        data = {'proyecto': proy, 'fases': fases, 'tareas': tareas, 'actividades': actividades}
+        
+        if valor_busqueda:
+            if 'usuario:' in valor_busqueda:
+                usuario = Usuario.objects.get(username=valor_busqueda[8:].replace(' ', ''))
+                return self.special_queryset(**data).filter(usuario=usuario)
+            elif 'objeto:' in valor_busqueda:
+                objeto = valor_busqueda[7:]
+                proy    = proy.filter(Q(nombre__icontains=objeto)|Q(descripcion__icontains=objeto))
+                fases   = fases.filter(descripcion__icontains=objeto)
+                tareas  = tareas.filter(descripcion__icontains=objeto)
+                actividades = actividades.filter(descripcion__icontains=objeto)
+                data = {'proyecto': proy, 'fases': fases, 'tareas': tareas, 'actividades': actividades}
+                return self.special_queryset(**data)
+            else:
+                return self.special_queryset(**data).filter(descripcion__icontains = valor_busqueda)
+        return self.special_queryset(**data)
 
 class Proyecto_TareaFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_tarea'
@@ -1214,7 +1266,7 @@ def accordion_tarea_actividad(request):
         campos_actividad = ['creacion', 'descripcion']
         tareas = Proyecto_Tarea.objects.filter(fase=fase)\
             .annotate(fin=Case(When(finalizado=100, then=True), default=False, output_field=BooleanField(),))\
-            .order_by('fin', 'prioridad')
+            .order_by('fin', '-prioridad')
         
         context = {'fase': fase, 'tareas': tareas, 'campos': campos_actividad}
         return render(request, 'seguimiento/accordion_for_fase.html', context)
@@ -1261,7 +1313,7 @@ class Proyecto_PendienteFormView(PersonalFormView, SeguimientoContextMixin):
     def form_valid(self, form, *args, **kwargs):
         data = form.cleaned_data
         self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
-            kwargs={'pk': data['proyecto'].id, 'pendientes': 'pendientes'})
+            kwargs={'pk': data['proyecto'].id, 'opcion': 'pendientes'})
         proyecto_pendiente = Proyecto_Pendiente(**data)
         proyecto_pendiente.save()
         return super().form_valid(form)
@@ -1284,7 +1336,7 @@ class Proyecto_PendienteUpdateView(PersonalUpdateView, SeguimientoContextMixin):
 
     def get_success_url(self):
         return reverse_lazy('seguimiento:detail_proyecto', 
-            kwargs={'pk': self.object.proyecto.id, 'pendientes': 'pendientes'})
+            kwargs={'pk': self.object.proyecto.id, 'opcion': 'pendientes'})
 
 class Proyecto_PendienteDeleteView(PersonalDeleteView, SeguimientoContextMixin):
     permission_required = 'seguimiento.delete_proyecto_pendiente'
@@ -1298,7 +1350,7 @@ class Proyecto_PendienteDeleteView(PersonalDeleteView, SeguimientoContextMixin):
 
     def get_success_url(self):
         return reverse_lazy('seguimiento:detail_proyecto', 
-            kwargs={'pk': self.object.proyecto.id, 'pendientes': 'pendientes'})
+            kwargs={'pk': self.object.proyecto.id, 'opcion': 'pendientes'})
 
 
 class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):
@@ -1339,26 +1391,22 @@ class ComentarioListView(PersonalListView, SeguimientoContextMixin):
     paginate_by = 15
     extra_context = {
         'campos': {
-            #-1: no enumera
-            # 0: inicia numeración en 0
-            # 1: inicia numeración en 1
             'enumerar': 1,
-            # Si hay valor se muestra opciones por linea, de lo contrario no se muestran
-            #'opciones': _('Opciones'),
-            # Lista de campos que se deben mostrar en la tabla
-            'lista': [
-                'creacion', 'descripcion', 'usuario'
-            ],
+            'lista': [ 'creacion', 'descripcion', 'usuario' ],
+            'opciones': _('Opciones'),
         },
+        'opciones': DISPLAYS['opciones'],
         'campos_extra': [
             {
-                'nombre':   _('Objeto'), #display
-                # valor, constante o funcion 
-                'funcion': 'get_objeto',  
+                'nombre':   _('Objeto'), 'funcion': 'get_objeto',  
             },
         ],
         'mensaje': {
             'vacio': DISPLAYS['tabla_vacia'],
+        },
+        'busqueda': {
+            'buscar':   _('Buscar'),
+            'limpiar':  _('Limpiar'),
         },
     }
 
@@ -1368,13 +1416,37 @@ class ComentarioListView(PersonalListView, SeguimientoContextMixin):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        proy = Proyecto.objects.get(pk=self.kwargs['pk'])
-        fases= Proyecto_Fase.objects.filter(proyecto = proy).values_list('id')
+        try:
+            valor_busqueda = self.request.GET.get('valor').lower()
+        except:
+            valor_busqueda = None
+        
+        proy = Proyecto.objects.filter(pk=self.kwargs['pk'])
+        fases= Proyecto_Fase.objects.filter(proyecto__in = proy).values_list('id')
         tareas = Proyecto_Tarea.objects.filter(fase__in=fases).values_list('id')
         actividades = Proyecto_Actividad.objects.filter(tarea__in=tareas).values_list('id')
+        data = {'proyecto': proy, 'fases': fases, 'tareas': tareas, 'actividades': actividades}
         
-        return (Comentario.objects.filter(tipo='P', obj_id=proy.id) | 
-            Comentario.objects.filter(tipo='F', obj_id__in=fases) |
-            Comentario.objects.filter(tipo='T', obj_id__in=tareas) |
-            Comentario.objects.filter(tipo='A', obj_id__in=actividades)).order_by('-creacion')
+        if valor_busqueda:
+            if 'usuario:' in valor_busqueda:
+                usuario = Usuario.objects.get(username=valor_busqueda[8:].replace(' ', ''))
+                return self.special_queryset(**data).filter(usuario=usuario)
+            elif 'objeto:' in valor_busqueda:
+                objeto = valor_busqueda[7:]
+                proy    = proy.filter(Q(nombre__icontains=objeto)|Q(descripcion__icontains=objeto))
+                fases   = fases.filter(descripcion__icontains=objeto)
+                tareas  = tareas.filter(descripcion__icontains=objeto)
+                actividades = actividades.filter(descripcion__icontains=objeto)
+                data = {'proyecto': proy, 'fases': fases, 'tareas': tareas, 'actividades': actividades}
+                return self.special_queryset(**data)
+            else:
+                return self.special_queryset(**data).filter(descripcion__icontains = valor_busqueda)
+        return self.special_queryset(**data)
+
+    def special_queryset(self, *args, **kwargs):
+        queryset = Comentario.objects.filter(tipo='P', obj_id__in=kwargs['proyecto']) |\
+            Comentario.objects.filter(tipo='F', obj_id__in=kwargs['fases']) |\
+            Comentario.objects.filter(tipo='T', obj_id__in=kwargs['tareas']) |\
+            Comentario.objects.filter(tipo='A', obj_id__in=kwargs['actividades'])
+
+        return queryset.order_by('-creacion')

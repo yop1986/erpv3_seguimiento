@@ -1,35 +1,46 @@
 {% load static i18n %}
 
 {% if user.is_authenticated %}
-<li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    {% translate "Catálogos" %}
-  </a>
-  <ul class="dropdown-menu">
-  {% if perms.seguimiento.view_estado %}
-    <li><a class="dropdown-item" href="{% url 'seguimiento:list_estado' %}">{% translate "Estados" %}</a></li>
-  {% endif %}
-  {% if perms.seguimiento.view_tipo_proyecto %}
-    <li><a class="dropdown-item" href="{% url 'seguimiento:list_tipo_proyecto' %}">{% translate "Tipo de proyecto" %}</a></li>
-  {% endif %}
-  {% if perms.seguimiento.view_origen_proyecto %}
-    <li><a class="dropdown-item" href="{% url 'seguimiento:list_origen_proyecto' %}">{% translate "Origen de proyecto" %}</a></li>
-  {% endif %}
-  {% if perms.seguimiento.view_pm_proyecto %}
-    <li><a class="dropdown-item" href="{% url 'seguimiento:list_pm_proyecto' %}">{% translate "Project Manager" %}</a></li>
-  {% endif %}
-</ul>
+  <li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      {% translate "Catálogos" %}
+    </a>
+    <ul class="dropdown-menu">
+      {% if perms.seguimiento.view_estado %}
+        <li><a class="dropdown-item" href="{% url 'seguimiento:list_estado' %}">{% translate "Estados" %}</a></li>
+      {% endif %}
+      {% if perms.seguimiento.view_tipo_proyecto %}
+        <li><a class="dropdown-item" href="{% url 'seguimiento:list_tipo_proyecto' %}">{% translate "Tipo de proyecto" %}</a></li>
+      {% endif %}
+      {% if perms.seguimiento.view_origen_proyecto %}
+        <li><a class="dropdown-item" href="{% url 'seguimiento:list_origen_proyecto' %}">{% translate "Origen de proyecto" %}</a></li>
+      {% endif %}
+      {% if perms.seguimiento.view_pm_proyecto %}
+        <li><a class="dropdown-item" href="{% url 'seguimiento:list_pm_proyecto' %}">{% translate "Project Manager" %}</a></li>
+      {% endif %}
+    </ul>
+  </li>
 
-</li>
-{% if perms.seguimiento.view_proyecto %}
-<li class="nav-item">
-  <a class="nav-link active" aria-current="page" href="{% url 'seguimiento:list_proyecto' %}">{% translate "Proyectos" %}</a>
-</li>
-{% endif %}
-{% if perms.seguimiento.view_proyecto_tarea %}
-<li class="nav-item">
-  <a class="nav-link active" aria-current="page" href="{% url 'seguimiento:list_proyectotarea' %}">{% translate "Tareas" %}</a>
-</li>
-{% endif %}
-</li> 
+  {% if perms.seguimiento.view_proyecto %}
+    <li class="nav-item">
+      <a class="nav-link active" aria-current="page" href="{% url 'seguimiento:list_proyecto' %}">{% translate "Proyectos" %}</a>
+    </li>
+  {% endif %}
+
+  {% if perms.seguimiento.view_proyecto_tarea %}
+    <li class="nav-item">
+      <a class="nav-link active" aria-current="page" href="{% url 'seguimiento:list_proyectotarea' %}">{% translate "Tareas" %}</a>
+    </li>
+  {% endif %}
+
+
+  <li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      {% translate "Reportes" %}
+    </a>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="{% url 'seguimiento:reporte_avance_proyecto' %}">{% translate "Reporte proyecto (temporal)" %}</a></li>
+    </ul>
+  </li>
+
 {% endif %}

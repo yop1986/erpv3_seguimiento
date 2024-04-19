@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Max, Q
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
@@ -82,8 +83,9 @@ class Proyecto_Fase_ModelForm(forms.ModelForm):
         super().__init__(**kwargs)
         try:
             if(args and args[0]=='proyecto'):
+                max_correlativo = Proyecto_Fase.objects.filter(proyecto_id=self.initial['proyecto']).aggregate(Max('correlativo'))['correlativo__max']
                 self.fields['proyecto'].queryset = self.fields['proyecto'].queryset.filter(id=self.initial['proyecto'])
-                self.initial['correlativo'] = Proyecto_Fase.objects.filter(proyecto_id=self.initial['proyecto']).count()+1
+                self.initial['correlativo'] = max_correlativo+1
         except:
             pass
 
@@ -168,3 +170,23 @@ class Proyecto_Comentario_ModelForm(forms.ModelForm):
         widgets = {'tipo': forms.HiddenInput(), 'obj_id': forms.HiddenInput()}
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
+
+class Proyecto_Reportes(forms.Form):
+    TIPOS = [
+        ('avance_proyecto', 'Avance de proyecto'),
+        ('acividad_usuario', 'Actividades por usuario'),
+    ]
+    proyecto= forms.ChoiceField(label=_('Proyecto'), required=True)
+    tipo    = forms.ChoiceField(label=_('Tipo Reporte'), required=True, choices=TIPOS)
+
+    def __init__(self, *args, **kwargs):
+        usr_id = kwargs.pop('usuario')
+        super().__init__(**kwargs)
+        
+        proys = Proyecto_Usuario.objects.filter(usuario_id=usr_id).values_list('proyecto')
+        
+        try:
+            self.fields['proyecto'].choices = Proyecto.objects.filter(Q(publico=True)|Q(id__in=proys), estado__bloquea=False)\
+                .values_list('id', 'nombre')
+        except:
+            pass

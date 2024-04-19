@@ -1,9 +1,12 @@
+# https://xlsxwriter.readthedocs.io/
+import io, xlsxwriter
 from datetime import date
 from itertools import chain
 
 from django.apps import apps
 from django.contrib import messages
 from django.db.models import Q, Case, When, BooleanField
+from django.http import FileResponse # HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils.translation import gettext as _
@@ -18,7 +21,7 @@ from .models import (Estado, Tipo_Proyecto, Origen_Proyecto, PM_Proyecto, Proyec
     Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, Proyecto_Pendiente, 
     Comentario)
 from .forms import (ProyectoForm, Proyecto_Objetivo_ModelForm, Proyecto_Meta_ModelForm,
-    Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelForm, Proyecto_Usuario_ModelForm, 
+    Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelForm, Proyecto_Usuario_ModelForm, Proyecto_Reportes, 
     Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm, Proyecto_Pendiente_ModelForm)
 
 #gConfiguracion = Configuracion()
@@ -642,7 +645,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
         context['campos_extra'] = [
             { 'nombre': _('Periodo'), 'funcion': 'get_periodo' },
             { 'nombre': _('Publico'), 'funcion': 'get_tipo_permiso', },
-            { 'nombre': _('Completado'), 'funcion': 'get_porcentaje_completado', },
+            { 'nombre': _('Completado'), 'porcentaje': self.object.get_porcentaje_completado, },
         ]
         context['permisos'] = {
             'bloqueado': estado_bloqueado,
@@ -1256,7 +1259,7 @@ class Proyecto_ActividadDeleteView(PersonalDeleteView, SeguimientoContextMixin):
             kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
 
 def combo_fase_tarea(request):
-    if request.user.has_perm('seguimiento:add_proyecto_actividad'):
+    if request.user.has_perm('seguimiento.add_proyecto_actividad'):
         tareas = Proyecto_Tarea.objects.filter(fase_id=request.GET.get('fase_id'))
         return render(request, 'template/ajax_combo.html', {'options': tareas})
         
@@ -1291,6 +1294,7 @@ def tabla_pendiente(request):
             }
         }
         return render(request, 'template/tables.html', context)
+
 
 class Proyecto_PendienteFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_pendiente'
@@ -1383,7 +1387,7 @@ class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):
             messages.error(self.request, error)
         return redirect(self.success_url)
 
-class ComentarioListView(PersonalListView, SeguimientoContextMixin):
+class Comentario_ListView(PersonalListView, SeguimientoContextMixin):
     permission_required = 'seguimiento.view_comentario'
     template_name = 'template/list.html'
     model = Comentario
@@ -1450,3 +1454,138 @@ class ComentarioListView(PersonalListView, SeguimientoContextMixin):
             Comentario.objects.filter(tipo='A', obj_id__in=kwargs['actividades'])
 
         return queryset.order_by('-creacion')
+
+
+class Reporte_FormView(PersonalFormView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.view_proyecto'
+    template_name = 'template/forms.html'
+    form_class = Proyecto_Reportes
+    success_url = reverse_lazy('seguimiento:list_proyecto')
+    extra_context = {
+        'title': _('Reportes'),
+        'opciones': DISPLAYS['forms'],
+    }
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['usuario'] = self.request.user.id
+        return kwargs
+
+    def form_valid(self, form, *args, **kwargs):
+        data = form.cleaned_data
+        print(data)
+        if data['tipo'] == 'avance_proyecto':
+            return reporte_avance_proyecto(data['proyecto'])
+        return super().form_valid(form)
+
+
+def reporte_avance_proyecto(proyecto_id):
+
+    proyecto= Proyecto.objects.get(id = proyecto_id)
+    fases   = Proyecto_Fase.objects.filter(proyecto=proyecto)
+
+    archivo = {
+        'nombre': proyecto.nombre, 
+        'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 2, 6), (3, 4, 12)],
+        }
+    
+
+    buffer = io.BytesIO()
+    workbook = xlsxwriter.Workbook(buffer)
+    worksheet = workbook.add_worksheet()
+
+    #Ancho de columnas
+    for columna in archivo['ancho_columnas']:
+        worksheet.set_column(*columna)
+    
+    arreglo_data = []
+    data  = []
+    data.append(reporte_data(0, 0, 'string', proyecto.nombre, workbook.add_format(reporte_formato('titulo'))))
+    data.append(reporte_data(None, 4, 'number', proyecto.get_porcentaje_completado, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
+    arreglo_data.append(data)
+
+    for fase in fases:
+        data  = []
+        data.append({'tipo': 'string', 'valor': fase.descripcion, 
+            'formato': workbook.add_format(reporte_formato('subtitulo'))})
+        data.append({'valor': ''})
+        data.append({'valor': ''})
+        data.append({'valor': ''})
+        data.append({'tipo': 'number', 'valor': fase.get_porcentaje_completado, 
+            'formato': workbook.add_format(reporte_formato('subtitulo', 'porcentaje'))})
+        arreglo_data.append(data)
+        for tarea in Proyecto_Tarea.objects.filter(fase=fase):
+            data = []
+            data.append({'valor': ''})
+            data.append({'tipo': 'string', 'valor': tarea.descripcion, 'formato':None})
+            data.append({'tipo': 'string', 'valor': tarea.get_prioridad_display(), 'formato':None})
+            data.append({'tipo': 'number', 'valor': tarea.complejidad, 'formato':None})
+            data.append({'tipo': 'number', 'valor': tarea.finalizado/100, 'formato':workbook.add_format(reporte_formato('porcentaje'))})
+            #data.append({'tipo': 'formula', 'valor': f'={tarea.complejidad}*{tarea.finalizado}/100', 'formato':None})
+            arreglo_data.append(data)
+
+    repote_escribe(worksheet, arreglo_data)   
+    workbook.close()
+    buffer.seek(0)
+
+    return FileResponse(buffer, as_attachment=True, filename=f'{archivo["nombre"]}.xlsx')
+
+def reporte_data(fila, columna, tipo, valor, formato):
+    d = {}
+    if fila:
+        d['fila'] = fila
+    if columna:
+        d['columna'] = columna
+    if tipo:
+        d['tipo'] = tipo
+    if valor:
+        d['valor'] = valor
+    if formato:
+        d['formato'] = formato
+    return d
+
+def reporte_formato(*args):
+    formato = {
+        'titulo'    : {'font_size': 18, 'bold': True},
+        'subtitulo' : {'font_size': 15, 'bold': True, 'italic': True},
+        'wrapping'  : {'text_wrap': True},
+        'porcentaje': {'num_format': '0.00%'},
+    }
+
+    f = {}
+    for elemento in args:
+        f.update(formato[f'{elemento}'])
+    return f
+    
+def repote_escribe(hoja, arreglo_data = [], fila_inicial=0, columna_inicial=0):
+    fila, columna = fila_inicial, columna_inicial
+    for data in arreglo_data:
+        for registro in data:
+            if 'fila' in registro:
+                fila = registro['fila']
+
+            if 'columna' in registro:
+                columna = registro['columna']
+
+            try:
+                if registro['tipo']=='string':
+                    hoja.write_string(fila, columna, registro['valor'], registro['formato'])
+                elif registro['tipo']=='number':
+                    hoja.write_number(fila, columna, registro['valor'], registro['formato'])
+                elif registro['tipo']=='blank':
+                    hoja.write_blank(fila, columna, registro['valor'], registro['formato'])
+                elif registro['tipo']=='formula':
+                    hoja.write_formula(fila, columna, registro['valor'], registro['formato'])
+                elif registro['tipo']=='datetime':
+                    hoja.write_datetime(fila, columna, registro['valor'], registro['formato'])
+                elif registro['tipo']=='boolean':
+                    hoja.write_boolean(fila, columna, registro['valor'], registro['formato'])
+                elif registro['tipo']=='url':
+                    hoja.write_url(fila, columna, registro['valor'], registro['formato'])
+                else:
+                    hoja.write(fila, columna, registro['valor'])
+            except:
+                hoja.write(fila, columna, registro['valor'])
+                #pass
+            columna += 1
+        fila, columna = fila+1, 0

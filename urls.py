@@ -71,7 +71,9 @@ urlpatterns = [
     path('pendiente/pendiente/', views.tabla_pendiente, name='tabla_pendiente'),
 
     path('comentario/nuevo/', views.Comentario_FormView.as_view(), name='create_comentario'),
-    path('comentario/<uuid:pk>', views.ComentarioListView.as_view(), name='list_comentario'),
+    path('comentario/<uuid:pk>', views.Comentario_ListView.as_view(), name='list_comentario'),
+
+    path('reporte/avance/proyecto', views.Reporte_FormView.as_view(), name='reporte_avance_proyecto'),
 ]
 
 

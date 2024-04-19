@@ -162,13 +162,13 @@ class Proyecto(models.Model):
             errores.append(ValidationError(_('La fecha de inicio debe ser menor a fecha de finalización'), code='fecha_invalida'))
         if errores:
             raise ValidationError(errores)
-
+    @property
     def get_porcentaje_completado(self):
         queryset = Proyecto_Tarea.objects.filter(fase__proyecto=self)
         total_complejidad = queryset.aggregate(total=Sum('complejidad'))['total']
         total_completado = queryset.aggregate(total=Sum(F('complejidad')*F('finalizado')))['total']
         porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
-        return f'{round(porcentaje, 2)} %'
+        return round(porcentaje/100, 4)
 
     def get_tipo_permiso(self):
         return _('Público') if self.publico else _('Privado')
@@ -302,11 +302,12 @@ class Proyecto_Fase(models.Model):
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
 
+    @property
     def get_porcentaje_completado(self):
         total_complejidad = Proyecto_Tarea.objects.filter(fase=self).aggregate(total=Sum('complejidad'))['total']
         total_completado = Proyecto_Tarea.objects.filter(fase=self).aggregate(total=Sum(F('complejidad')*F('finalizado')))['total']
         porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
-        return round(porcentaje, 2)
+        return round(porcentaje/100, 4)
 
     def url_update(self):
         if self.proyecto.get_modificable():

@@ -1,0 +1,24 @@
+{% extends 'template/forms.html' %}
+{% load static %}
+
+
+{% block js_foot %}
+<script type="text/javascript" src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+<script>
+	// Permite modificar el combo de usuarios con base en el proyecto seleccionado
+	// Reporte de actividades
+    $("select#id_proyecto").on('change', function(){
+      var proyecto_id = $(this).val()
+      $.ajax({
+        url: "{% url 'seguimiento:combo_proyectousuario' %}",
+        type: 'get',
+        data: {
+          'proyecto_id': proyecto_id
+        },
+        success: function(data){
+          $('select#id_usuario').html(data)
+        },
+      });
+    });
+</script>
+{% endblock %}

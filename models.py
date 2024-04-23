@@ -150,7 +150,8 @@ class Proyecto(models.Model):
 
     class Meta:
         permissions = [
-            ("proyect_admin", "Ver todos los proyectos y agregar usuarios")
+            ("proyect_admin", "Ver todos los proyectos y agregar usuarios"),
+            ("reportes", "Permite visualizar las opciones de reportería"),
         ]
 
     def __str__(self):
@@ -162,6 +163,7 @@ class Proyecto(models.Model):
             errores.append(ValidationError(_('La fecha de inicio debe ser menor a fecha de finalización'), code='fecha_invalida'))
         if errores:
             raise ValidationError(errores)
+
     @property
     def get_porcentaje_completado(self):
         queryset = Proyecto_Tarea.objects.filter(fase__proyecto=self)

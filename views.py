@@ -1,5 +1,5 @@
 # https://xlsxwriter.readthedocs.io/
-import io, xlsxwriter
+import io, xlsxwriter, html2text
 from datetime import date
 from itertools import chain
 
@@ -21,8 +21,9 @@ from .models import (Estado, Tipo_Proyecto, Origen_Proyecto, PM_Proyecto, Proyec
     Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, Proyecto_Pendiente, 
     Comentario)
 from .forms import (ProyectoForm, Proyecto_Objetivo_ModelForm, Proyecto_Meta_ModelForm,
-    Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelForm, Proyecto_Usuario_ModelForm, Proyecto_Reportes, 
-    Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm, Proyecto_Pendiente_ModelForm)
+    Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelForm, Proyecto_Usuario_ModelForm, 
+    Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm, Proyecto_Pendiente_ModelForm,
+    Proyecto_Reporte_Avances, Proyecto_Reportes_Actividades)
 
 #gConfiguracion = Configuracion()
 
@@ -1456,13 +1457,12 @@ class Comentario_ListView(PersonalListView, SeguimientoContextMixin):
         return queryset.order_by('-creacion')
 
 
-class Reporte_FormView(PersonalFormView, SeguimientoContextMixin):
+class ReporteAvances_FormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.view_proyecto'
     template_name = 'template/forms.html'
-    form_class = Proyecto_Reportes
-    success_url = reverse_lazy('seguimiento:list_proyecto')
+    form_class = Proyecto_Reporte_Avances
     extra_context = {
-        'title': _('Reportes'),
+        'title': _('Reporte de avances'),
         'opciones': DISPLAYS['forms'],
     }
 
@@ -1473,14 +1473,87 @@ class Reporte_FormView(PersonalFormView, SeguimientoContextMixin):
 
     def form_valid(self, form, *args, **kwargs):
         data = form.cleaned_data
-        print(data)
-        if data['tipo'] == 'avance_proyecto':
-            return reporte_avance_proyecto(data['proyecto'])
-        return super().form_valid(form)
+        return reporte_avance_proyecto(data['proyecto'])
 
+class ReporteActividades_FormView(PersonalFormView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.view_proyecto'
+    template_name = 'seguimiento/forms_reportes.html'
+    form_class = Proyecto_Reportes_Actividades
+    extra_context = {
+        'title': _('Reporte de actividades'),
+        'opciones': DISPLAYS['forms'],
+    }
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['usuario'] = self.request.user.id
+        return kwargs
+
+    def form_valid(self, form, *args, **kwargs):
+        data = form.cleaned_data
+        return reporte_actividades_proyecto(data['proyecto'], data['fini'], data['ffin'])
+
+def combo_proyecto_usuario(request):
+    if request.user.has_perm('seguimiento.view_proyecto'):
+        usuarios = Proyecto_Usuario.objects.filter(proyecto_id=request.GET.get('proyecto_id')).values_list('usuario')
+        usuarios = Usuario.objects.filter(id__in=usuarios)
+        return render(request, 'template/ajax_combo.html', {'options': usuarios})
+
+
+
+#REPORTES
+def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin):
+    proyecto    = Proyecto.objects.get(id = proyecto_id)
+    actividades = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase')\
+        .filter(tarea__fase__proyecto=proyecto, actualizacion__gte=fecha_ini, actualizacion__lte=fecha_fin)\
+        .order_by('descripcion')
+
+    archivo = {
+        'nombre': proyecto.nombre, 
+        'ancho_columnas':   [(0, 0, 15), (1, 1, 30), (2 , 2, 30), (3, 3, 90), (4, 4, 30)],
+        }
+    
+    buffer = io.BytesIO()
+    workbook = xlsxwriter.Workbook(buffer)
+    worksheet = workbook.add_worksheet()
+
+    #Ancho de columnas
+    for columna in archivo['ancho_columnas']:
+        worksheet.set_column(*columna)
+
+    arreglo_data = []
+    data  = []
+    data.append(reporte_data(0, 0, 'string', proyecto.nombre, workbook.add_format(reporte_formato('titulo'))))
+    data.append(reporte_data(None, 4, 'number', proyecto.get_porcentaje_completado, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
+    arreglo_data.append(data)
+
+    #Titulos
+    data  = []
+    data.append(reporte_data(None, None, 'string', 'Fecha', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'Fase', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'Tarea', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'Actividad', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'Usuario', workbook.add_format(reporte_formato('subtitulo'))))
+    arreglo_data.append(data)
+
+    for actividad in actividades:
+        data  = []
+        data.append(reporte_data(None, None, 'datetime', actividad.actualizacion, workbook.add_format(reporte_formato('fecha'))))
+        data.append(reporte_data(None, None, 'string', actividad.tarea.fase.descripcion, None))
+        data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, None))
+        data.append(reporte_data(None, None, 'string', actividad.descripcion, None))
+        data.append(reporte_data(None, None, 'string', actividad.history.all().last().history_user.__str__(), None))
+        arreglo_data.append(data)
+
+        
+    repote_escribe(worksheet, arreglo_data)   
+    workbook.close()
+    buffer.seek(0)
+
+
+    return FileResponse(buffer, as_attachment=True, filename=f'{archivo["nombre"]}.xlsx')
 
 def reporte_avance_proyecto(proyecto_id):
-
     proyecto= Proyecto.objects.get(id = proyecto_id)
     fases   = Proyecto_Fase.objects.filter(proyecto=proyecto)
 
@@ -1492,7 +1565,7 @@ def reporte_avance_proyecto(proyecto_id):
 
     buffer = io.BytesIO()
     workbook = xlsxwriter.Workbook(buffer)
-    worksheet = workbook.add_worksheet()
+    worksheet = workbook.add_worksheet('General')
 
     #Ancho de columnas
     for columna in archivo['ancho_columnas']:
@@ -1506,29 +1579,59 @@ def reporte_avance_proyecto(proyecto_id):
 
     for fase in fases:
         data  = []
-        data.append({'tipo': 'string', 'valor': fase.descripcion, 
-            'formato': workbook.add_format(reporte_formato('subtitulo'))})
-        data.append({'valor': ''})
-        data.append({'valor': ''})
-        data.append({'valor': ''})
-        data.append({'tipo': 'number', 'valor': fase.get_porcentaje_completado, 
-            'formato': workbook.add_format(reporte_formato('subtitulo', 'porcentaje'))})
+        data.append(reporte_data(None, None, 'string', fase.descripcion, None))
+        data.append(reporte_data(None, None, 'string', '', None))
+        data.append(reporte_data(None, None, 'string', '', None))
+        data.append(reporte_data(None, None, 'string', '', None))
+        data.append(reporte_data(None, None, 'number', fase.get_porcentaje_completado, workbook.add_format(reporte_formato('subtitulo', 'porcentaje'))))
         arreglo_data.append(data)
+        
         for tarea in Proyecto_Tarea.objects.filter(fase=fase):
             data = []
-            data.append({'valor': ''})
-            data.append({'tipo': 'string', 'valor': tarea.descripcion, 'formato':None})
-            data.append({'tipo': 'string', 'valor': tarea.get_prioridad_display(), 'formato':None})
-            data.append({'tipo': 'number', 'valor': tarea.complejidad, 'formato':None})
-            data.append({'tipo': 'number', 'valor': tarea.finalizado/100, 'formato':workbook.add_format(reporte_formato('porcentaje'))})
-            #data.append({'tipo': 'formula', 'valor': f'={tarea.complejidad}*{tarea.finalizado}/100', 'formato':None})
+            data.append(reporte_data(None, None, 'string', '', None))
+            data.append(reporte_data(None, None, 'string', tarea.descripcion, None))
+            data.append(reporte_data(None, None, 'string', tarea.get_prioridad_display(), None))
+            data.append(reporte_data(None, None, 'number', tarea.complejidad, None))
+            data.append(reporte_data(None, None, 'number', tarea.finalizado/100, workbook.add_format(reporte_formato('porcentaje'))))
             arreglo_data.append(data)
 
-    repote_escribe(worksheet, arreglo_data)   
+    repote_escribe(worksheet, arreglo_data)
+
+    worksheet = workbook.add_worksheet('Pendientes')
+    
+    for columna in [(0, 0, 60), (1, 1, 30), (2 , 3, 15), (4, 4, 90)]:
+        worksheet.set_column(*columna)
+
+    pendientes = Proyecto_Pendiente.objects.filter(proyecto=proyecto).order_by('finalizado', 'descripcion')
+
+    arreglo_data = []
+
+    #Titulos
+    data  = []
+    data.append(reporte_data(0, 0, 'string', 'Descripción', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'Responsable', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'Estado', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'Actualizado', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'Resolución', workbook.add_format(reporte_formato('subtitulo'))))
+    arreglo_data.append(data)
+
+    for pendiente in pendientes:
+        data = []
+        data.append(reporte_data(None, None, 'string', pendiente.descripcion, None))
+        data.append(reporte_data(None, None, 'string', pendiente.responsable, None))
+        data.append(reporte_data(None, None, 'string', pendiente.get_estado(), None))
+        data.append(reporte_data(None, None, 'datetime', pendiente.actualizacion, workbook.add_format(reporte_formato('fecha'))))
+        data.append(reporte_data(None, None, 'string', html2text.html2text(pendiente.resolucion).strip(), workbook.add_format(reporte_formato('wrapping'))))
+        arreglo_data.append(data)
+    
+    repote_escribe(worksheet, arreglo_data)
+
     workbook.close()
     buffer.seek(0)
 
     return FileResponse(buffer, as_attachment=True, filename=f'{archivo["nombre"]}.xlsx')
+
+
 
 def reporte_data(fila, columna, tipo, valor, formato):
     d = {}
@@ -1538,23 +1641,29 @@ def reporte_data(fila, columna, tipo, valor, formato):
         d['columna'] = columna
     if tipo:
         d['tipo'] = tipo
-    if valor:
+    if valor is not None:
         d['valor'] = valor
     if formato:
         d['formato'] = formato
     return d
 
-def reporte_formato(*args):
+def reporte_formato(*args, custom=None):
     formato = {
         'titulo'    : {'font_size': 18, 'bold': True},
         'subtitulo' : {'font_size': 15, 'bold': True, 'italic': True},
         'wrapping'  : {'text_wrap': True},
         'porcentaje': {'num_format': '0.00%'},
+        'fecha'     : {'num_format': 'dd/mm/yyyy'},
+        'fecha_hora': {'num_format': 'dd/mm/yy hh:mm:ss'},
+        'hora'      : {'num_format': 'hh:mm:ss'},
+        'custom'    : {'custom': custom},
     }
 
     f = {}
     for elemento in args:
         f.update(formato[f'{elemento}'])
+    if custom:
+        f.update(formato[f'{custom}'])
     return f
     
 def repote_escribe(hoja, arreglo_data = [], fila_inicial=0, columna_inicial=0):
@@ -1568,24 +1677,27 @@ def repote_escribe(hoja, arreglo_data = [], fila_inicial=0, columna_inicial=0):
                 columna = registro['columna']
 
             try:
+                valor = registro['valor'] if 'valor' in registro else None
+                formato = registro['formato'] if 'formato' in registro else None
+
                 if registro['tipo']=='string':
-                    hoja.write_string(fila, columna, registro['valor'], registro['formato'])
+                    hoja.write_string(fila, columna, valor, formato)
                 elif registro['tipo']=='number':
-                    hoja.write_number(fila, columna, registro['valor'], registro['formato'])
+                    hoja.write_number(fila, columna, valor, formato)
                 elif registro['tipo']=='blank':
-                    hoja.write_blank(fila, columna, registro['valor'], registro['formato'])
+                    hoja.write_blank(fila, columna, valor, formato)
                 elif registro['tipo']=='formula':
-                    hoja.write_formula(fila, columna, registro['valor'], registro['formato'])
+                    hoja.write_formula(fila, columna, valor, formato)
                 elif registro['tipo']=='datetime':
-                    hoja.write_datetime(fila, columna, registro['valor'], registro['formato'])
+                    hoja.write_datetime(fila, columna, valor, formato)
                 elif registro['tipo']=='boolean':
-                    hoja.write_boolean(fila, columna, registro['valor'], registro['formato'])
+                    hoja.write_boolean(fila, columna, valor, formato)
                 elif registro['tipo']=='url':
-                    hoja.write_url(fila, columna, registro['valor'], registro['formato'])
+                    hoja.write_url(fila, columna, valor, formato)
                 else:
-                    hoja.write(fila, columna, registro['valor'])
+                    hoja.write(fila, columna, valor)
             except:
-                hoja.write(fila, columna, registro['valor'])
-                #pass
+                hoja.write(fila, columna, valor)
             columna += 1
         fila, columna = fila+1, 0
+

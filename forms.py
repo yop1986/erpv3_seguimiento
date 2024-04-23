@@ -19,6 +19,19 @@ class DynamicChoiceField(forms.ChoiceField):
         return value
 
 
+
+def elementos_combo(lista, vacio=True, extra=[]):
+    datos = []
+    if vacio:
+        datos = [('', '---------'), ]
+    if lista:
+        datos += [ (elemento[0], elemento[1]) for elemento in lista ]
+    if extra:
+        datos += extra
+    return datos
+
+
+
 class ProyectoForm(forms.ModelForm): 
     class Meta:
         model = Proyecto
@@ -171,14 +184,10 @@ class Proyecto_Comentario_ModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
 
-class Proyecto_Reportes(forms.Form):
-    TIPOS = [
-        ('avance_proyecto', 'Avance de proyecto'),
-        ('acividad_usuario', 'Actividades por usuario'),
-    ]
-    proyecto= forms.ChoiceField(label=_('Proyecto'), required=True)
-    tipo    = forms.ChoiceField(label=_('Tipo Reporte'), required=True, choices=TIPOS)
 
+class Proyecto_Reporte_Avances(forms.Form):
+    proyecto= forms.ChoiceField(label=_('Proyecto'), required=True)
+    
     def __init__(self, *args, **kwargs):
         usr_id = kwargs.pop('usuario')
         super().__init__(**kwargs)
@@ -186,7 +195,30 @@ class Proyecto_Reportes(forms.Form):
         proys = Proyecto_Usuario.objects.filter(usuario_id=usr_id).values_list('proyecto')
         
         try:
-            self.fields['proyecto'].choices = Proyecto.objects.filter(Q(publico=True)|Q(id__in=proys), estado__bloquea=False)\
-                .values_list('id', 'nombre')
+            self.fields['proyecto'].choices = elementos_combo(Proyecto.objects.filter(Q(publico=True)|Q(id__in=proys), estado__bloquea=False)\
+                .values_list('id', 'nombre'))
         except:
             pass
+
+class Proyecto_Reportes_Actividades(forms.Form):
+    proyecto= forms.ChoiceField(label=_('Proyecto'), required=True)
+    fini    = forms.DateField(label=_('Fecha Inicio'))
+    ffin    = forms.DateField(label=_('Fecha Fin'))
+    
+    def __init__(self, *args, **kwargs):
+        usr_id = kwargs.pop('usuario')
+        super().__init__(**kwargs)
+        
+        proys   = Proyecto_Usuario.objects.filter(usuario_id=usr_id).values_list('proyecto')
+
+        try:
+            self.fields['proyecto'].choices = elementos_combo(Proyecto.objects.filter(Q(publico=True)|Q(id__in=proys), estado__bloquea=False)\
+                .values_list('id', 'nombre'))
+            #self.fields['usuario'].choices  = elementos_combo(None)
+            self.fields['fini'].widget      = DateInput(format='%Y-%m-%d')
+            self.fields['ffin'].widget      = DateInput(format='%Y-%m-%d')
+        except:
+            pass
+
+
+

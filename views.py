@@ -724,7 +724,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'modal':    'proyecto_pendiente', 
                             'display':  _('Agregar pendientes'),
                             'link_img': 'seguimiento_pendiente.png',
-                            'action':   reverse_lazy('seguimiento:create_proyectopendiente')+'?next='+self.object.url_detail(),
+                            'action':   reverse_lazy('seguimiento:create_proyectopendiente'),
                             'form':     Proyecto_Pendiente_ModelForm('nuevo', instance=Proyecto_Pendiente(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
@@ -1079,6 +1079,7 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
             'buscar':   _('Buscar'),
             'limpiar':  _('Limpiar'),
         },
+        'badge': _('Pendientes asociados'),
     }
 
     def get_queryset(self):
@@ -1107,31 +1108,6 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
         queryset = queryset.filter(fase__proyecto__in = chain(asignados, publicos))
         return queryset
 
-
-
-
-        
-        proy = Proyecto.objects.filter(pk=self.kwargs['pk'])
-        fases= Proyecto_Fase.objects.filter(proyecto__in = proy).values_list('id')
-        tareas = Proyecto_Tarea.objects.filter(fase__in=fases).values_list('id')
-        actividades = Proyecto_Actividad.objects.filter(tarea__in=tareas).values_list('id')
-        data = {'proyecto': proy, 'fases': fases, 'tareas': tareas, 'actividades': actividades}
-        
-        if valor_busqueda:
-            if 'usuario:' in valor_busqueda:
-                usuario = Usuario.objects.get(username=valor_busqueda[8:].replace(' ', ''))
-                return self.special_queryset(**data).filter(usuario=usuario)
-            elif 'objeto:' in valor_busqueda:
-                objeto = valor_busqueda[7:]
-                proy    = proy.filter(Q(nombre__icontains=objeto)|Q(descripcion__icontains=objeto))
-                fases   = fases.filter(descripcion__icontains=objeto)
-                tareas  = tareas.filter(descripcion__icontains=objeto)
-                actividades = actividades.filter(descripcion__icontains=objeto)
-                data = {'proyecto': proy, 'fases': fases, 'tareas': tareas, 'actividades': actividades}
-                return self.special_queryset(**data)
-            else:
-                return self.special_queryset(**data).filter(descripcion__icontains = valor_busqueda)
-        return self.special_queryset(**data)
 
 class Proyecto_TareaFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_tarea'
@@ -1308,17 +1284,11 @@ class Proyecto_PendienteFormView(PersonalFormView, SeguimientoContextMixin):
         'opciones': DISPLAYS['forms'],
     }
 
-    def get_form_kwargs(self, **kwargs):
-        kwargs = super().get_form_kwargs()
-        redirect = self.request.GET.get('next')
-        if redirect:
-            self.success_url = redirect
-        return kwargs
-
     def form_valid(self, form, *args, **kwargs):
         data = form.cleaned_data
         self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
             kwargs={'pk': data['proyecto'].id, 'opcion': 'pendientes'})
+        data.pop('fase')
         proyecto_pendiente = Proyecto_Pendiente(**data)
         proyecto_pendiente.save()
         return super().form_valid(form)
@@ -1330,7 +1300,7 @@ class Proyecto_PendienteFormView(PersonalFormView, SeguimientoContextMixin):
 
 class Proyecto_PendienteUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     permission_required = 'seguimiento.change_proyecto_pendiente'
-    template_name = 'template/forms.html'
+    template_name = 'seguimiento/forms.html'
     model = Proyecto_Pendiente
     form_class = Proyecto_Pendiente_ModelForm
     success_message = 'Actualización exitosa'
@@ -1340,8 +1310,12 @@ class Proyecto_PendienteUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     }
 
     def get_success_url(self):
-        return reverse_lazy('seguimiento:detail_proyecto', 
-            kwargs={'pk': self.object.proyecto.id, 'opcion': 'pendientes'})
+        if self.object.finalizado and self.object.tarea:
+            return reverse_lazy('seguimiento:detail_proyecto', 
+                kwargs={'pk': self.object.proyecto.id, 'faseactiva': self.object.tarea.fase.id})
+        else:
+            return reverse_lazy('seguimiento:detail_proyecto', 
+                kwargs={'pk': self.object.proyecto.id, 'opcion': 'pendientes'})
 
 class Proyecto_PendienteDeleteView(PersonalDeleteView, SeguimientoContextMixin):
     permission_required = 'seguimiento.delete_proyecto_pendiente'
@@ -1477,7 +1451,7 @@ class ReporteAvances_FormView(PersonalFormView, SeguimientoContextMixin):
 
 class ReporteActividades_FormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.view_proyecto'
-    template_name = 'seguimiento/forms_reportes.html'
+    template_name = 'seguimiento/forms.html'
     form_class = Proyecto_Reportes_Actividades
     extra_context = {
         'title': _('Reporte de actividades'),

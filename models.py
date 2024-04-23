@@ -343,6 +343,13 @@ class Proyecto_Tarea(models.Model):
 
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
+    
+    def get_badge_value(self):
+        pendientes = Proyecto_Pendiente.objects.filter(tarea = self).count()
+        if pendientes:
+            return pendientes
+        else:
+            return None
 
     def url_proyecto(self):
         return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': self.fase.proyecto.id})
@@ -414,6 +421,7 @@ class Proyecto_Pendiente(models.Model):
 
     finalizado  = models.BooleanField(_('Resuelto'), default=False)
 
+    tarea       = models.ForeignKey(Proyecto_Tarea, null=True, blank=True, on_delete=models.SET_NULL)
     proyecto    = models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 
     history     = HistoricalRecords(excluded_fields=['proyecto', 'creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)

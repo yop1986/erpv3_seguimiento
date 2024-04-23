@@ -145,19 +145,30 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
             pass
 
 class Proyecto_Pendiente_ModelForm(forms.ModelForm):
+    fase = DynamicChoiceField(label=_('Fase'), required=False)
+
     class Meta:
         model = Proyecto_Pendiente
-        fields = ['descripcion', 'responsable', 'resolucion', 'finalizado', 'proyecto']
+        fields = ['descripcion', 'responsable', 'fase', 'tarea', 'resolucion', 'finalizado', 'proyecto']
         widgets = {'proyecto': forms.HiddenInput()}
         
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
         try:
+            pendiente = kwargs['instance']
+            self.fields['fase'].choices     = elementos_combo(Proyecto_Fase.objects.filter(proyecto = pendiente.proyecto).values_list('id', 'descripcion'))
             if args and 'nuevo' in args:
-                self.fields['resolucion'].widget = forms.HiddenInput()
-                self.fields['finalizado'].widget = forms.HiddenInput()
+                self.fields['resolucion'].widget= forms.HiddenInput()
+                self.fields['finalizado'].widget= forms.HiddenInput()
+                self.fields['tarea'].queryset   = Proyecto_Tarea.objects.none()
+            else:
+                fase = Proyecto_Fase.objects.get(id = pendiente.tarea.fase.id).id
+                self.initial['fase']            = fase
+                self.fields['tarea'].queryset   = Proyecto_Tarea.objects.filter(fase = fase)
         except :
             pass
+        self.fields['tarea'].queryset   = Proyecto_Tarea.objects.all()
+        
 
 class Proyecto_Usuario_ModelForm(forms.ModelForm):
     class Meta:

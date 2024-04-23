@@ -20,5 +20,21 @@
         },
       });
     });
+
+    // Permite modificar el combo de tarea con base en la fase seleccionada
+    // al momento de crear una actividad
+    $("select#id_fase").on('change', function(){
+      var fase_id = $(this).val()
+      $.ajax({
+        url: "{% url 'seguimiento:combo_fasetarea' %}",
+        type: 'get',
+        data: {
+          'fase_id': fase_id
+        },
+        success: function(data){
+          $('select#id_tarea').html(data)
+        },
+      });
+    });
 </script>
 {% endblock %}

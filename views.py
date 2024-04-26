@@ -18,12 +18,11 @@ from usuarios.personal_views import (PersonalContextMixin, PersonalCreateView,
     PersonalFormView, Configuracion)
 
 from .models import (Estado, Tipo_Proyecto, Origen_Proyecto, PM_Proyecto, Proyecto, Proyecto_Objetivo, 
-    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, Proyecto_Pendiente, 
-    Comentario)
+    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, Comentario)
 from .forms import (ProyectoForm, Proyecto_Objetivo_ModelForm, Proyecto_Meta_ModelForm,
     Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelForm, Proyecto_Usuario_ModelForm, 
-    Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm, Proyecto_Pendiente_ModelForm,
-    Proyecto_Reporte_Avances, Proyecto_Reportes_Actividades)
+    Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm, Proyecto_Reporte_Avances, 
+    Proyecto_Reportes_Actividades)
 
 #gConfiguracion = Configuracion()
 
@@ -719,15 +718,6 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'form':     Proyecto_Actividad_ModelForm(self.object),
                             'opciones': DISPLAYS['forms'],
                         })
-        if self.request.user.has_perm('seguimiento.add_proyecto_pendiente'):
-            formularios.append({
-                            'modal':    'proyecto_pendiente', 
-                            'display':  _('Agregar pendientes'),
-                            'link_img': 'seguimiento_pendiente.png',
-                            'action':   reverse_lazy('seguimiento:create_proyectopendiente'),
-                            'form':     Proyecto_Pendiente_ModelForm('nuevo', instance=Proyecto_Pendiente(proyecto=self.object)),
-                            'opciones': DISPLAYS['forms'],
-                        })
         if self.request.user.has_perm('seguimiento.proyect_admin'):
             formularios.append({
                             'modal':    'proyecto_usuario', 
@@ -1069,7 +1059,7 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
         'opciones': DISPLAYS['opciones'],
         'campos_extra': [
             { 'nombre': _('Fase'), 'funcion': 'get_full_parent', },
-            { 'nombre': _('% Completado'), 'valor': 'get_finalizado', },
+            { 'nombre': _('% Completado'), 'porcentaje': 'finalizado', },
             { 'nombre': _('Prioridad'), 'valor': 'get_prioridad', },
         ],
         'mensaje': {
@@ -1079,7 +1069,6 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
             'buscar':   _('Buscar'),
             'limpiar':  _('Limpiar'),
         },
-        'badge': _('Pendientes asociados'),
     }
 
     def get_queryset(self):
@@ -1088,7 +1077,8 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
         except:
             valor_busqueda = None
 
-        queryset = super().get_queryset().filter(finalizado__lt = 100)
+        tareas = Proyecto_Actividad.objects.filter(finalizado__lt = 100).values_list('tarea_id').distinct()
+        queryset = super().get_queryset().filter(proyecto_actividad__isnull=True) | Proyecto_Tarea.objects.filter(id__in = tareas)
         
         if valor_busqueda:
             if 'fase:' in valor_busqueda:
@@ -1206,7 +1196,7 @@ class Proyecto_ActividadFormView(PersonalFormView, SeguimientoContextMixin):
 
 class Proyecto_ActividadUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     permission_required = 'seguimiento.change_proyecto_actividad'
-    template_name = 'template/forms.html'
+    template_name = 'seguimiento/forms.html'
     model = Proyecto_Actividad
     form_class = Proyecto_Actividad_ModelForm
     success_message = 'Actualización exitosa'
@@ -1243,24 +1233,22 @@ def combo_fase_tarea(request):
 def accordion_tarea_actividad(request):
     if request.user.has_perm('seguimiento.view_proyecto_tarea'):
         fase = Proyecto_Fase.objects.get(id=request.GET.get('obj_id'))
-        campos_actividad = ['creacion', 'descripcion']
+        campos_actividad = ['creacion', 'descripcion', 'finalizado']
         tareas = Proyecto_Tarea.objects.filter(fase=fase)\
-            .annotate(fin=Case(When(finalizado=100, then=True), default=False, output_field=BooleanField(),))\
-            .order_by('fin', '-prioridad')
+            .order_by('descripcion') #'-prioridad', 
         
         context = {'fase': fase, 'tareas': tareas, 'campos': campos_actividad}
         return render(request, 'seguimiento/accordion_for_fase.html', context)
 
 def tabla_pendiente(request):
     if request.user.has_perm('seguimiento.view_proyecto_pendiente'):
-        pendientes = Proyecto_Pendiente.objects.filter(proyecto_id=request.GET.get('obj_id'))\
-            .order_by('finalizado')
+        pendientes = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase')\
+            .filter(tarea__fase__proyecto=request.GET.get('obj_id'), finalizado__lt=100).order_by('finalizado')
         context = {
             'table': {
                 'title': _('Pendientes'),
                 'object_list': pendientes,
                 'lista': ['creacion', 'descripcion', 'responsable'],
-                'campos_extra': [{'nombre': _('Estado'), 'funcion': 'get_estado'}],
                 'opciones': _('Opciones'),
                 'permisos': {
                     'update':   request.user.has_perm('seguimiento.change_proyecto_pendiente'),
@@ -1270,66 +1258,9 @@ def tabla_pendiente(request):
                 },
             }
         }
-        return render(request, 'template/tables.html', context)
 
+    return render(request, 'template/tables.html', context)
 
-class Proyecto_PendienteFormView(PersonalFormView, SeguimientoContextMixin):
-    permission_required = 'seguimiento.add_proyecto_pendiente'
-    template_name = 'template/forms.html'
-    form_class = Proyecto_Pendiente_ModelForm
-    success_url = reverse_lazy('seguimiento:list_proyecto')
-    success_message = _('Pendiente ingresado correctamente')
-    extra_context = {
-        'title': _('Ingreso de actividad pendiente'),
-        'opciones': DISPLAYS['forms'],
-    }
-
-    def form_valid(self, form, *args, **kwargs):
-        data = form.cleaned_data
-        self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
-            kwargs={'pk': data['proyecto'].id, 'opcion': 'pendientes'})
-        data.pop('fase')
-        proyecto_pendiente = Proyecto_Pendiente(**data)
-        proyecto_pendiente.save()
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        for error in form.errors.get("__all__"):
-            messages.error(self.request, error)
-        return redirect(self.success_url)
-
-class Proyecto_PendienteUpdateView(PersonalUpdateView, SeguimientoContextMixin):
-    permission_required = 'seguimiento.change_proyecto_pendiente'
-    template_name = 'seguimiento/forms.html'
-    model = Proyecto_Pendiente
-    form_class = Proyecto_Pendiente_ModelForm
-    success_message = 'Actualización exitosa'
-    extra_context = {
-        'title': _('Modificar pendiente'),
-        'opciones': DISPLAYS['forms'],
-    }
-
-    def get_success_url(self):
-        if self.object.finalizado and self.object.tarea:
-            return reverse_lazy('seguimiento:detail_proyecto', 
-                kwargs={'pk': self.object.proyecto.id, 'faseactiva': self.object.tarea.fase.id})
-        else:
-            return reverse_lazy('seguimiento:detail_proyecto', 
-                kwargs={'pk': self.object.proyecto.id, 'opcion': 'pendientes'})
-
-class Proyecto_PendienteDeleteView(PersonalDeleteView, SeguimientoContextMixin):
-    permission_required = 'seguimiento.delete_proyecto_pendiente'
-    template_name = 'template/delete_confirmation.html'
-    model = Proyecto_Pendiente
-    success_message = 'Eliminación exitosa'
-    extra_context = {
-        'title': _('Eliminar pendiente'),
-        'opciones': DISPLAYS['delete_form'],
-    }
-
-    def get_success_url(self):
-        return reverse_lazy('seguimiento:detail_proyecto', 
-            kwargs={'pk': self.object.proyecto.id, 'opcion': 'pendientes'})
 
 
 class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):
@@ -1478,13 +1409,13 @@ def combo_proyecto_usuario(request):
 #REPORTES
 def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin):
     proyecto    = Proyecto.objects.get(id = proyecto_id)
-    actividades = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase')\
+    actividades = Proyecto_Actividad.objects.select_related('tarea__fase', 'tarea')\
         .filter(tarea__fase__proyecto=proyecto, actualizacion__gte=fecha_ini, actualizacion__lte=fecha_fin)\
         .order_by('descripcion')
 
     archivo = {
         'nombre': proyecto.nombre, 
-        'ancho_columnas':   [(0, 0, 15), (1, 1, 30), (2 , 2, 30), (3, 3, 90), (4, 4, 30)],
+        'ancho_columnas':   [(0, 0, 15), (1, 1, 30), (2 , 2, 30), (3, 3, 90), (4, 5, 30)],
         }
     
     buffer = io.BytesIO()
@@ -1498,16 +1429,17 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin):
     arreglo_data = []
     data  = []
     data.append(reporte_data(0, 0, 'string', proyecto.nombre, workbook.add_format(reporte_formato('titulo'))))
-    data.append(reporte_data(None, 4, 'number', proyecto.get_porcentaje_completado, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
+    data.append(reporte_data(None, 5, 'number', proyecto.get_porcentaje_completado/100, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
     arreglo_data.append(data)
 
     #Titulos
     data  = []
-    data.append(reporte_data(None, None, 'string', 'Fecha', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'Fase', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'Tarea', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'Actividad', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'Usuario', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(2, None, 'string', 'FECHA', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'FASE', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'ACTIVIDAD', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'RESPONSABLE', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'USUARIO', workbook.add_format(reporte_formato('subtitulo'))))
     arreglo_data.append(data)
 
     for actividad in actividades:
@@ -1516,24 +1448,23 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin):
         data.append(reporte_data(None, None, 'string', actividad.tarea.fase.descripcion, None))
         data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, None))
         data.append(reporte_data(None, None, 'string', actividad.descripcion, None))
+        data.append(reporte_data(None, None, 'string', actividad.responsable, workbook.add_format(reporte_formato('subtitulo'))))
         data.append(reporte_data(None, None, 'string', actividad.history.all().last().history_user.__str__(), None))
         arreglo_data.append(data)
 
-        
     repote_escribe(worksheet, arreglo_data)   
     workbook.close()
     buffer.seek(0)
-
 
     return FileResponse(buffer, as_attachment=True, filename=f'{archivo["nombre"]}.xlsx')
 
 def reporte_avance_proyecto(proyecto_id):
     proyecto= Proyecto.objects.get(id = proyecto_id)
-    fases   = Proyecto_Fase.objects.filter(proyecto=proyecto)
+    fases   = Proyecto_Fase.objects.filter(proyecto=proyecto).order_by('descripcion')
 
     archivo = {
         'nombre': proyecto.nombre, 
-        'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 2, 6), (3, 4, 12)],
+        'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 5, 15)],
         }
     
 
@@ -1548,7 +1479,16 @@ def reporte_avance_proyecto(proyecto_id):
     arreglo_data = []
     data  = []
     data.append(reporte_data(0, 0, 'string', proyecto.nombre, workbook.add_format(reporte_formato('titulo'))))
-    data.append(reporte_data(None, 4, 'number', proyecto.get_porcentaje_completado, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
+    data.append(reporte_data(None, 5, 'number', proyecto.get_porcentaje_completado/100, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
+    arreglo_data.append(data)
+
+    data  = []
+    data.append(reporte_data(2, 0, 'string', 'FASE', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'DESCRIPCIÓN', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', '# ACTIVIDADES', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'PRIORIDAD', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'COMPLEJIDAD', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', '% AVANCE', workbook.add_format(reporte_formato('subtitulo'))))
     arreglo_data.append(data)
 
     for fase in fases:
@@ -1557,47 +1497,20 @@ def reporte_avance_proyecto(proyecto_id):
         data.append(reporte_data(None, None, 'string', '', None))
         data.append(reporte_data(None, None, 'string', '', None))
         data.append(reporte_data(None, None, 'string', '', None))
-        data.append(reporte_data(None, None, 'number', fase.get_porcentaje_completado, workbook.add_format(reporte_formato('subtitulo', 'porcentaje'))))
+        data.append(reporte_data(None, None, 'string', '', None))
+        data.append(reporte_data(None, None, 'number', fase.get_porcentaje_completado/100, workbook.add_format(reporte_formato('subtitulo', 'porcentaje'))))
         arreglo_data.append(data)
         
         for tarea in Proyecto_Tarea.objects.filter(fase=fase):
             data = []
             data.append(reporte_data(None, None, 'string', '', None))
             data.append(reporte_data(None, None, 'string', tarea.descripcion, None))
+            data.append(reporte_data(None, None, 'number', tarea.get_cantidad_actividades(), None))
             data.append(reporte_data(None, None, 'string', tarea.get_prioridad_display(), None))
             data.append(reporte_data(None, None, 'number', tarea.complejidad, None))
             data.append(reporte_data(None, None, 'number', tarea.finalizado/100, workbook.add_format(reporte_formato('porcentaje'))))
             arreglo_data.append(data)
 
-    repote_escribe(worksheet, arreglo_data)
-
-    worksheet = workbook.add_worksheet('Pendientes')
-    
-    for columna in [(0, 0, 60), (1, 1, 30), (2 , 3, 15), (4, 4, 90)]:
-        worksheet.set_column(*columna)
-
-    pendientes = Proyecto_Pendiente.objects.filter(proyecto=proyecto).order_by('finalizado', 'descripcion')
-
-    arreglo_data = []
-
-    #Titulos
-    data  = []
-    data.append(reporte_data(0, 0, 'string', 'Descripción', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'Responsable', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'Estado', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'Actualizado', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'Resolución', workbook.add_format(reporte_formato('subtitulo'))))
-    arreglo_data.append(data)
-
-    for pendiente in pendientes:
-        data = []
-        data.append(reporte_data(None, None, 'string', pendiente.descripcion, None))
-        data.append(reporte_data(None, None, 'string', pendiente.responsable, None))
-        data.append(reporte_data(None, None, 'string', pendiente.get_estado(), None))
-        data.append(reporte_data(None, None, 'datetime', pendiente.actualizacion, workbook.add_format(reporte_formato('fecha'))))
-        data.append(reporte_data(None, None, 'string', html2text.html2text(pendiente.resolucion).strip(), workbook.add_format(reporte_formato('wrapping'))))
-        arreglo_data.append(data)
-    
     repote_escribe(worksheet, arreglo_data)
 
     workbook.close()
@@ -1624,7 +1537,7 @@ def reporte_data(fila, columna, tipo, valor, formato):
 def reporte_formato(*args, custom=None):
     formato = {
         'titulo'    : {'font_size': 18, 'bold': True},
-        'subtitulo' : {'font_size': 15, 'bold': True, 'italic': True},
+        'subtitulo' : {'font_size': 12, 'bold': True, 'italic': True},
         'wrapping'  : {'text_wrap': True},
         'porcentaje': {'num_format': '0.00%'},
         'fecha'     : {'num_format': 'dd/mm/yyyy'},
@@ -1632,8 +1545,7 @@ def reporte_formato(*args, custom=None):
         'hora'      : {'num_format': 'hh:mm:ss'},
         'custom'    : {'custom': custom},
     }
-
-    f = {}
+    f = {} 
     for elemento in args:
         f.update(formato[f'{elemento}'])
     if custom:
@@ -1674,4 +1586,3 @@ def repote_escribe(hoja, arreglo_data = [], fila_inicial=0, columna_inicial=0):
                 hoja.write(fila, columna, valor)
             columna += 1
         fila, columna = fila+1, 0
-

@@ -1,11 +1,13 @@
 import uuid
 from datetime import date
+from functools import reduce
+from operator import add
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import Max, Sum, F, Value
+from django.db.models import Max, Sum, Avg, F
 from django.db.models.constraints import UniqueConstraint
 from django.utils.translation import gettext as _
 from django.urls import reverse_lazy
@@ -166,11 +168,16 @@ class Proyecto(models.Model):
 
     @property
     def get_porcentaje_completado(self):
-        queryset = Proyecto_Tarea.objects.filter(fase__proyecto=self)
-        total_complejidad = queryset.aggregate(total=Sum('complejidad'))['total']
-        total_completado = queryset.aggregate(total=Sum(F('complejidad')*F('finalizado')))['total']
-        porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
-        return round(porcentaje/100, 4)
+        try:
+            tareas = Proyecto_Tarea.objects.filter(proyecto_actividad__isnull=True)
+            queryset = Proyecto_Tarea.objects.filter(fase__proyecto=self).exclude(id__in=tareas)
+            total_complejidad = queryset.aggregate(total=Sum('complejidad'))['total']
+            total_completado    = reduce(add, [obj.complejidad * obj.finalizado for obj in queryset])
+            porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
+        except:
+            print('error en Proyecto.get_porcentaje_completado')
+            porcentaje = 0
+        return round(porcentaje, 4)
 
     def get_tipo_permiso(self):
         return _('Público') if self.publico else _('Privado')
@@ -199,7 +206,8 @@ class Proyecto(models.Model):
         '''
         try:
             proy_expira = int(conf.get_value('seguimiento', 'proy_expira'))
-        except Exception as e:
+        except:
+            print("error en Proyecto.get_modificable")
             proy_expira = False
 
         return not (proy_expira and self.ffin < date.today()) and not self.estado.bloquea
@@ -306,10 +314,17 @@ class Proyecto_Fase(models.Model):
 
     @property
     def get_porcentaje_completado(self):
-        total_complejidad = Proyecto_Tarea.objects.filter(fase=self).aggregate(total=Sum('complejidad'))['total']
-        total_completado = Proyecto_Tarea.objects.filter(fase=self).aggregate(total=Sum(F('complejidad')*F('finalizado')))['total']
-        porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
-        return round(porcentaje/100, 4)
+        try:
+            tareas = Proyecto_Tarea.objects.filter(proyecto_actividad__isnull=True)
+            queryset = Proyecto_Tarea.objects.filter(fase=self).exclude(id__in=tareas)
+
+            total_complejidad   = queryset.aggregate(total=Sum('complejidad'))['total']
+            total_completado    = reduce(add, [obj.complejidad * obj.finalizado for obj in queryset])
+            porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
+        except:
+            print("error en Proyecto_Fase.get_porcentaje_completado")
+            porcentaje = 0
+        return round(porcentaje, 4)
 
     def url_update(self):
         if self.proyecto.get_modificable():
@@ -332,8 +347,6 @@ class Proyecto_Tarea(models.Model):
     prioridad   = models.PositiveSmallIntegerField(default=10, choices=PRIORIDADES)
     complejidad = models.PositiveSmallIntegerField(verbose_name=_('Complejidad'), default=1,
         validators=[ MaxValueValidator(100), MinValueValidator(1) ], help_text=_('Complejidad de 1 a 100'))
-    finalizado  = models.PositiveSmallIntegerField(verbose_name=_('% Completado'), default=0,
-        validators=[ MaxValueValidator(100), MinValueValidator(0) ], help_text=_('Porcentaje de activdad completada de 0 - 100%'))
     creacion    = models.DateField(_('Creación'), auto_now_add=True)
     actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
 
@@ -344,13 +357,6 @@ class Proyecto_Tarea(models.Model):
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
     
-    def get_badge_value(self):
-        pendientes = Proyecto_Pendiente.objects.filter(tarea = self).count()
-        if pendientes:
-            return pendientes
-        else:
-            return None
-
     def url_proyecto(self):
         return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': self.fase.proyecto.id})
 
@@ -368,8 +374,11 @@ class Proyecto_Tarea(models.Model):
             return reverse_lazy('seguimiento:delete_proyectotarea', kwargs={'pk': self.id})
         return None
 
+    def get_cantidad_actividades(self):
+        return Proyecto_Actividad.objects.filter(tarea=self).count()
+
     def get_actividades(self):
-        return Proyecto_Actividad.objects.filter(tarea=self)
+        return Proyecto_Actividad.objects.filter(tarea=self).order_by('finalizado', 'creacion')
 
     def get_full_parent(self):
         return f'{self.fase.proyecto} > {self.fase.correlativo:02d}: {self.fase.descripcion}'
@@ -381,8 +390,10 @@ class Proyecto_Tarea(models.Model):
             return f'seguimiento_prioridad_{self.prioridad}.png'
 
     @property
-    def get_finalizado(self):
-        return f'{self.finalizado}%'
+    def finalizado(self):
+        if Proyecto_Actividad.objects.filter(tarea=self).count()==0:
+            return 0
+        return Proyecto_Actividad.objects.filter(tarea=self).aggregate(Avg('finalizado'))['finalizado__avg']
 
     @property
     def get_prioridad(self):
@@ -391,9 +402,13 @@ class Proyecto_Tarea(models.Model):
 class Proyecto_Actividad(models.Model):
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180)
+    resolucion  = CKEditor5Field(verbose_name=_('Resolución'), blank=True, config_name='extends')
     creacion    = models.DateField(_('Creación'), auto_now_add=True)
     actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
-    
+    finalizado  = models.PositiveSmallIntegerField(verbose_name=_('% Completado'), default=0,
+        validators=[ MaxValueValidator(100), MinValueValidator(0) ], help_text=_('Porcentaje de activdad completada de 0 - 100%'))
+
+    responsable = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Responsable'), null=True, blank=True, on_delete=models.RESTRICT)
     tarea       = models.ForeignKey(Proyecto_Tarea, verbose_name=_('Tarea'), on_delete=models.RESTRICT)
 
     history = HistoricalRecords(excluded_fields=['tarea', 'creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
@@ -409,39 +424,6 @@ class Proyecto_Actividad(models.Model):
     def url_delete(self):
         if self.tarea.fase.proyecto.get_modificable():
             return reverse_lazy('seguimiento:delete_proyectoactividad', kwargs={'pk': self.id})
-        return None
-
-class Proyecto_Pendiente(models.Model):
-    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    descripcion = models.CharField(_('Descripción'), max_length=180)
-    resolucion  = CKEditor5Field(verbose_name=_('Resolución'), blank=True, config_name='extends')
-    responsable = models.CharField(_('Responsable'), max_length=180)
-    creacion    = models.DateField(_('Creación'), auto_now_add=True)
-    actualizacion = models.DateField(_('Actualizacion'), auto_now=True)
-
-    finalizado  = models.BooleanField(_('Resuelto'), default=False)
-
-    tarea       = models.ForeignKey(Proyecto_Tarea, null=True, blank=True, on_delete=models.SET_NULL)
-    proyecto    = models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
-
-    history     = HistoricalRecords(excluded_fields=['proyecto', 'creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
-
-    def __str__(self, max_length=60):
-        return f'{self.descripcion}'
-
-    def get_estado(self):
-        if self.finalizado:
-            return _('Resuelto')
-        return _('Pendiente')
-
-    def url_update(self):
-        if self.proyecto.get_modificable():
-            return reverse_lazy('seguimiento:update_proyectopendiente', kwargs={'pk': self.id})
-        return None
-
-    def url_delete(self):
-        if self.proyecto.get_modificable():
-            return reverse_lazy('seguimiento:delete_proyectopendiente', kwargs={'pk': self.id})
         return None
 
 class Comentario(models.Model):

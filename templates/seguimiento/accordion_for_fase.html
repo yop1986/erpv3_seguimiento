@@ -42,7 +42,7 @@
           </a>
       {% endif %}
         &nbsp; 
-        {{ tarea }} ({{ tarea.get_finalizado }})
+        {{ tarea }} ({% convertir_porcentaje tarea.finalizado %})
       </button>
     </h2>
 
@@ -58,6 +58,7 @@
             {% for campo in campos %}
               <td>{% get_object_value actividad campo %}</td>
             {% endfor %}
+              
 
               <td class="col-3">
               {% if perms.seguimiento.add_comentario %}

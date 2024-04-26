@@ -8,7 +8,7 @@ from django_ckeditor_5.widgets import CKEditor5Widget
 from usuarios.models import Usuario
 from .models import (Proyecto, Proyecto_Usuario, Proyecto_Objetivo, 
     Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, 
-    Proyecto_Pendiente, Comentario)
+    Comentario)
 
 
 class DateInput(forms.DateInput):
@@ -105,14 +105,13 @@ class Proyecto_Fase_ModelForm(forms.ModelForm):
 class Proyecto_Tarea_ModelForm(forms.ModelForm):
     class Meta:
         model = Proyecto_Tarea
-        fields = ['fase', 'descripcion', 'prioridad', 'complejidad', 'finalizado']
+        fields = ['fase', 'descripcion', 'prioridad', 'complejidad']
 
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
         try:
             if args and 'nuevo' in args:
                 self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=args[1], cerrado=False).order_by('descripcion')
-                self.fields['finalizado'].widget = forms.HiddenInput()
             elif kwargs['instance']:
                 self.fields['fase'].queryset = Proyecto_Fase.objects.filter(id = kwargs['instance'].fase.id)
                 self.fields['fase'].disabled = True
@@ -125,50 +124,34 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
 
     class Meta:
         model = Proyecto_Actividad
-        fields = ['fase', 'tarea', 'descripcion']
+        fields = ['fase', 'tarea', 'descripcion', 'responsable', 'resolucion', 'finalizado']
         
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
         try:
-            if kwargs and kwargs['instance']:
-                tarea = kwargs['instance'].tarea
-                fases = [(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=tarea.fase.proyecto, cerrado=False).order_by('descripcion')]
-                fases.insert(0, ('', '------------'))
+            if kwargs and 'instance' in kwargs:
+                tarea   = kwargs['instance'].tarea
+                usrs    = Proyecto_Usuario.objects.filter(proyecto = tarea.fase.proyecto).values_list('usuario_id')
+                self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=tarea.fase.proyecto, cerrado=False).order_by('descripcion')])
+                self.fields['tarea'].queryset = Proyecto_Tarea.objects.filter(fase = tarea.fase)
+
                 self.initial['fase'] = tarea.fase.id
-                self.fields['tarea'].queryset = Proyecto_Tarea.objects.filter(fase=tarea.fase)
+                self.initial['tarea'] = tarea.id
+
+                self.fields['fase'].disabled = True
+                self.fields['fase'].widget.attrs["readonly"] = True
+                self.fields['tarea'].disabled = True
+                self.fields['tarea'].widget.attrs["readonly"] = True
             else:
-                fases = [(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=args[0], cerrado=False).order_by('descripcion')]
-                fases.insert(0, ('', '------------'))
+                usrs    = Proyecto_Usuario.objects.filter(proyecto = args[0]).values_list('usuario_id')
+                self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=args[0], cerrado=False).order_by('descripcion')])
                 self.fields['tarea'].queryset = Proyecto_Tarea.objects.none()
-            self.fields['fase'].choices = fases
+
+                self.fields['resolucion'].widget = forms.HiddenInput()
+                self.fields['finalizado'].widget = forms.HiddenInput()
+            self.fields['responsable'].queryset = Usuario.objects.filter(id__in = usrs)
         except :
             pass
-
-class Proyecto_Pendiente_ModelForm(forms.ModelForm):
-    fase = DynamicChoiceField(label=_('Fase'), required=False)
-
-    class Meta:
-        model = Proyecto_Pendiente
-        fields = ['descripcion', 'responsable', 'fase', 'tarea', 'resolucion', 'finalizado', 'proyecto']
-        widgets = {'proyecto': forms.HiddenInput()}
-        
-    def __init__(self, *args, **kwargs):
-        super().__init__(**kwargs)
-        try:
-            pendiente = kwargs['instance']
-            self.fields['fase'].choices     = elementos_combo(Proyecto_Fase.objects.filter(proyecto = pendiente.proyecto).values_list('id', 'descripcion'))
-            if args and 'nuevo' in args:
-                self.fields['resolucion'].widget= forms.HiddenInput()
-                self.fields['finalizado'].widget= forms.HiddenInput()
-                self.fields['tarea'].queryset   = Proyecto_Tarea.objects.none()
-            else:
-                fase = Proyecto_Fase.objects.get(id = pendiente.tarea.fase.id).id
-                self.initial['fase']            = fase
-                self.fields['tarea'].queryset   = Proyecto_Tarea.objects.filter(fase = fase)
-        except :
-            pass
-        self.fields['tarea'].queryset   = Proyecto_Tarea.objects.all()
-        
 
 class Proyecto_Usuario_ModelForm(forms.ModelForm):
     class Meta:
@@ -194,7 +177,6 @@ class Proyecto_Comentario_ModelForm(forms.ModelForm):
         widgets = {'tipo': forms.HiddenInput(), 'obj_id': forms.HiddenInput()}
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
-
 
 class Proyecto_Reporte_Avances(forms.Form):
     proyecto= forms.ChoiceField(label=_('Proyecto'), required=True)

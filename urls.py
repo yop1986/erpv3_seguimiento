@@ -64,10 +64,6 @@ urlpatterns = [
     path('actividad/eliminar/<uuid:pk>', views.Proyecto_ActividadDeleteView.as_view(), name='delete_proyectoactividad'),
     path('fase/tarea/', views.combo_fase_tarea, name='combo_fasetarea'),
     path('accordion/tarea/actividad/', views.accordion_tarea_actividad, name='accordion_tareaactividad'),
-
-    path('pendiente/nueva/', views.Proyecto_PendienteFormView.as_view(), name='create_proyectopendiente'),
-    path('pendiente/actualizar/<uuid:pk>', views.Proyecto_PendienteUpdateView.as_view(), name='update_proyectopendiente'),
-    path('pendiente/eliminar/<uuid:pk>', views.Proyecto_PendienteDeleteView.as_view(), name='delete_proyectopendiente'),
     path('pendiente/pendiente/', views.tabla_pendiente, name='tabla_pendiente'),
 
     path('comentario/nuevo/', views.Comentario_FormView.as_view(), name='create_comentario'),
@@ -77,12 +73,3 @@ urlpatterns = [
     path('reporte/actividades', views.ReporteActividades_FormView.as_view(), name='reporte_actividades_proyecto'),
     path('proyecto/usuario/', views.combo_proyecto_usuario, name='combo_proyectousuario'),
 ]
-
-
-    
-
-
-
-
-    
-    

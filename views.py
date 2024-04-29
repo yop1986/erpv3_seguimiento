@@ -1227,7 +1227,7 @@ class Proyecto_ActividadDeleteView(PersonalDeleteView, SeguimientoContextMixin):
 
 def combo_fase_tarea(request):
     if request.user.has_perm('seguimiento.add_proyecto_actividad'):
-        tareas = Proyecto_Tarea.objects.filter(fase_id=request.GET.get('fase_id'))
+        tareas = Proyecto_Tarea.objects.filter(fase_id=request.GET.get('fase_id')).order_by('descripcion')
         return render(request, 'template/ajax_combo.html', {'options': tareas})
         
 def accordion_tarea_actividad(request):
@@ -1443,13 +1443,17 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin):
     arreglo_data.append(data)
 
     for actividad in actividades:
+        responsable = actividad.responsable
+        responsable = actividad.history.all().last().history_user if not responsable else responsable
+        responsable = '' if not responsable else responsable.get_full_name()
+
         data  = []
         data.append(reporte_data(None, None, 'datetime', actividad.actualizacion, workbook.add_format(reporte_formato('fecha'))))
         data.append(reporte_data(None, None, 'string', actividad.tarea.fase.descripcion, None))
         data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, None))
         data.append(reporte_data(None, None, 'string', actividad.descripcion, None))
         data.append(reporte_data(None, None, 'string', actividad.responsable, workbook.add_format(reporte_formato('subtitulo'))))
-        data.append(reporte_data(None, None, 'string', actividad.history.all().last().history_user.__str__(), None))
+        data.append(reporte_data(None, None, 'string', responsable, None))
         arreglo_data.append(data)
 
     repote_escribe(worksheet, arreglo_data)   
@@ -1513,6 +1517,39 @@ def reporte_avance_proyecto(proyecto_id):
 
     repote_escribe(worksheet, arreglo_data)
 
+    worksheet = workbook.add_worksheet('Act. Pendientes')
+    
+    for columna in [(0, 0, 30), (1, 2, 66), (3 , 5, 21)]:
+        worksheet.set_column(*columna)
+
+    arreglo_data = []
+    data  = []
+    data.append(reporte_data(0, 0, 'string', 'FASE', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'DESCRIPCIÓN', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'RESPONSABLE', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', '% AVANCE', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'RESOLUCIÓN', workbook.add_format(reporte_formato('subtitulo'))))
+    arreglo_data.append(data)
+
+    actividades = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase').filter(tarea__fase__proyecto=proyecto, finalizado__lt=100)
+
+    for actividad in actividades:
+        data = []
+        responsable = actividad.responsable
+        responsable = actividad.history.all().last().history_user if not responsable else responsable
+        responsable = '' if not responsable else responsable.get_full_name()
+
+        data.append(reporte_data(None, None, 'string', actividad.tarea.fase.descripcion, workbook.add_format(reporte_formato('wrapping'))))
+        data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, workbook.add_format(reporte_formato('wrapping'))))
+        data.append(reporte_data(None, None, 'string', actividad.descripcion, workbook.add_format(reporte_formato('wrapping'))))
+        data.append(reporte_data(None, None, 'string', responsable, None))
+        data.append(reporte_data(None, None, 'number', actividad.finalizado/100, workbook.add_format(reporte_formato('porcentaje'))))
+        data.append(reporte_data(None, None, 'string', actividad.resolucion, None))
+        arreglo_data.append(data)
+
+    repote_escribe(worksheet, arreglo_data)
+
     workbook.close()
     buffer.seek(0)
 
@@ -1556,6 +1593,7 @@ def repote_escribe(hoja, arreglo_data = [], fila_inicial=0, columna_inicial=0):
     fila, columna = fila_inicial, columna_inicial
     for data in arreglo_data:
         for registro in data:
+            #print(registro)
             if 'fila' in registro:
                 fila = registro['fila']
 

@@ -174,8 +174,8 @@ class Proyecto(models.Model):
             total_complejidad = queryset.aggregate(total=Sum('complejidad'))['total']
             total_completado    = reduce(add, [obj.complejidad * obj.finalizado for obj in queryset])
             porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
-        except:
-            print('error en Proyecto.get_porcentaje_completado')
+        except Exception as ex:
+            print(f'error en Proyecto.get_porcentaje_completado: {ex}')
             porcentaje = 0
         return round(porcentaje, 4)
 
@@ -206,8 +206,8 @@ class Proyecto(models.Model):
         '''
         try:
             proy_expira = int(conf.get_value('seguimiento', 'proy_expira'))
-        except:
-            print("error en Proyecto.get_modificable")
+        except Exception as ex:
+            print(f'error en Proyecto.get_modificable: {ex}')
             proy_expira = False
 
         return not (proy_expira and self.ffin < date.today()) and not self.estado.bloquea
@@ -321,8 +321,8 @@ class Proyecto_Fase(models.Model):
             total_complejidad   = queryset.aggregate(total=Sum('complejidad'))['total']
             total_completado    = reduce(add, [obj.complejidad * obj.finalizado for obj in queryset])
             porcentaje = total_completado/total_complejidad if total_completado and total_complejidad > 0 else 0.0
-        except:
-            print("error en Proyecto_Fase.get_porcentaje_completado")
+        except Exception as ex:
+            print(f'error en Proyecto_Fase.get_porcentaje_completado: {ex}')
             porcentaje = 0
         return round(porcentaje, 4)
 

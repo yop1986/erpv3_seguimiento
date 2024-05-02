@@ -416,6 +416,9 @@ class Proyecto_Actividad(models.Model):
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
 
+    def get_porcentaje(self):
+        return f'{self.finalizado}%'
+
     def url_update(self):
         if self.tarea.fase.proyecto.get_modificable():
             return reverse_lazy('seguimiento:update_proyectoactividad', kwargs={'pk': self.id})

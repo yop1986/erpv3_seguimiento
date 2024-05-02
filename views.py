@@ -1248,7 +1248,10 @@ def tabla_pendiente(request):
             'table': {
                 'title': _('Pendientes'),
                 'object_list': pendientes,
-                'lista': ['creacion', 'descripcion', 'responsable'],
+                'lista': ['creacion', 'tarea', 'descripcion', 'responsable'],
+                'campos_extra': [
+                        { 'funcion': 'get_porcentaje' },
+                    ],
                 'opciones': _('Opciones'),
                 'permisos': {
                     'update':   request.user.has_perm('seguimiento.change_proyecto_pendiente'),

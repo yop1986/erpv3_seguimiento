@@ -1432,7 +1432,7 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin):
     arreglo_data = []
     data  = []
     data.append(reporte_data(0, 0, 'string', proyecto.nombre, workbook.add_format(reporte_formato('titulo'))))
-    data.append(reporte_data(None, 5, 'number', proyecto.get_porcentaje_completado/100, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
+    data.append(reporte_data(None, 4, 'number', proyecto.get_porcentaje_completado/100, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
     arreglo_data.append(data)
 
     #Titulos
@@ -1442,7 +1442,6 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin):
     data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'ACTIVIDAD', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'RESPONSABLE', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'USUARIO', workbook.add_format(reporte_formato('subtitulo'))))
     arreglo_data.append(data)
 
     for actividad in actividades:
@@ -1455,7 +1454,6 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin):
         data.append(reporte_data(None, None, 'string', actividad.tarea.fase.descripcion, None))
         data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, None))
         data.append(reporte_data(None, None, 'string', actividad.descripcion, None))
-        data.append(reporte_data(None, None, 'string', actividad.responsable, workbook.add_format(reporte_formato('subtitulo'))))
         data.append(reporte_data(None, None, 'string', responsable, None))
         arreglo_data.append(data)
 

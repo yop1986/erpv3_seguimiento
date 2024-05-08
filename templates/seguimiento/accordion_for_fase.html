@@ -66,8 +66,7 @@
                 <img src="{% static 'images/seguimiento_comentario_add.png' %}" alt="Comentario" height="25px">
                 </button>
               {% endif %}
-
-              {% if perms.seguimiento.update_proyecto_actividad and actividad.url_update %}
+              {% if perms.seguimiento.change_proyecto_actividad and actividad.url_update %}
                 <a href="{{ actividad.url_update }}{% if fases.next %}?next={{ fases.next }}{% endif %}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ opciones.update }}">
                   <img src="{% static 'images/seguimiento_update.png' %}" alt="{{ opciones.update }}" height="25px">
                 </a>

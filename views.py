@@ -1546,7 +1546,7 @@ def reporte_avance_proyecto(proyecto_id):
         data.append(reporte_data(None, None, 'string', actividad.descripcion, workbook.add_format(reporte_formato('wrapping'))))
         data.append(reporte_data(None, None, 'string', responsable, None))
         data.append(reporte_data(None, None, 'number', actividad.finalizado/100, workbook.add_format(reporte_formato('porcentaje'))))
-        data.append(reporte_data(None, None, 'string', actividad.resolucion, None))
+        data.append(reporte_data(None, None, 'string', html2text.html2text(actividad.resolucion), None))
         arreglo_data.append(data)
 
     repote_escribe(worksheet, arreglo_data)

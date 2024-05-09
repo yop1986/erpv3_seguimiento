@@ -97,6 +97,7 @@ class Proyecto_Fase_ModelForm(forms.ModelForm):
         try:
             if(args and args[0]=='proyecto'):
                 max_correlativo = Proyecto_Fase.objects.filter(proyecto_id=self.initial['proyecto']).aggregate(Max('correlativo'))['correlativo__max']
+                max_correlativo = max_correlativo if max_correlativo else 0
                 self.fields['proyecto'].queryset = self.fields['proyecto'].queryset.filter(id=self.initial['proyecto'])
                 self.initial['correlativo'] = max_correlativo+1
         except:

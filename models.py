@@ -231,8 +231,9 @@ class Proyecto(models.Model):
 
 class Proyecto_Usuario(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Usuario'), on_delete=models.RESTRICT)  
+    proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.CASCADE)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Usuario'), on_delete=models.CASCADE)
+    
     history = HistoricalRecords(excluded_fields=[], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self):

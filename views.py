@@ -1319,6 +1319,7 @@ def tabla_pendiente(request):
                     ],
                 'opciones': _('Opciones'),
                 'permisos': {
+                    'detail_img': 'seguimiento_detail.png',
                     'update':   request.user.has_perm('seguimiento.change_proyecto_pendiente'),
                     'update_img': 'seguimiento_update.png',
                     'delete':   request.user.has_perm('seguimiento.delete_proyecto_pendiente'),

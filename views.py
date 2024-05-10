@@ -1327,7 +1327,6 @@ def tabla_pendiente(request):
                 },
             }
         }
-
     return render(request, 'template/tables.html', context)
 
 
@@ -1556,10 +1555,11 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin, workbook=Non
 def reporte_avance_proyecto(proyecto_id):
     proyecto= Proyecto.objects.get(id = proyecto_id)
     fases   = Proyecto_Fase.objects.filter(proyecto=proyecto).order_by('descripcion')
-
+    proy_usr= Proyecto_Usuario.objects.filter(proyecto=proyecto)
+    
     archivo = {
         'nombre': proyecto.nombre, 
-        'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 5, 15)],
+        'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 7, 15)],
         }
     
 
@@ -1574,35 +1574,33 @@ def reporte_avance_proyecto(proyecto_id):
     arreglo_data = []
     data  = []
     data.append(reporte_data(0, 0, 'string', proyecto.nombre, workbook.add_format(reporte_formato('titulo'))))
-    data.append(reporte_data(None, 5, 'number', proyecto.get_porcentaje_completado/100, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
+    data.append(reporte_data(None, 7, 'number', proyecto.get_porcentaje_completado/100, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
     arreglo_data.append(data)
 
     data  = []
     data.append(reporte_data(2, 0, 'string', 'FASE', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'RESPONSABLE', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', '# ACTIVIDADES', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'PRIORIDAD', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'COMPLEJIDAD', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'ESTADO', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', '% AVANCE', workbook.add_format(reporte_formato('subtitulo'))))
     arreglo_data.append(data)
 
     for fase in fases:
         data  = []
-        data.append(reporte_data(None, None, 'string', fase.descripcion, None))
-        data.append(reporte_data(None, None, 'string', '', None))
-        data.append(reporte_data(None, None, 'string', '', None))
-        data.append(reporte_data(None, None, 'string', '', None))
-        data.append(reporte_data(None, None, 'string', '', None))
-        data.append(reporte_data(None, None, 'number', fase.get_porcentaje_completado/100, workbook.add_format(reporte_formato('subtitulo', 'porcentaje'))))
-        arreglo_data.append(data)
         
         for tarea in Proyecto_Tarea.objects.filter(fase=fase):
+            usr_id = Proyecto_Actividad.objects.filter(tarea = tarea).values_list('responsable_id', flat=True).distinct()
             data = []
-            data.append(reporte_data(None, None, 'string', '', None))
+            data.append(reporte_data(None, None, 'string', fase.descripcion, None))
             data.append(reporte_data(None, None, 'string', tarea.descripcion, None))
+            data.append(reporte_data(None, None, 'string', ', '.join([u.usuario.get_full_name() for u in proy_usr.filter(usuario_id__in=usr_id)]), None))
             data.append(reporte_data(None, None, 'number', tarea.get_cantidad_actividades(), None))
             data.append(reporte_data(None, None, 'string', tarea.get_prioridad_display(), None))
             data.append(reporte_data(None, None, 'number', tarea.complejidad, None))
+            data.append(reporte_data(None, None, 'string', 'COMPLETADO' if tarea.finalizado==1 else 'PENDIENTE', None))
             data.append(reporte_data(None, None, 'number', tarea.finalizado/100, workbook.add_format(reporte_formato('porcentaje'))))
             arreglo_data.append(data)
 
@@ -1619,11 +1617,12 @@ def reporte_avance_proyecto(proyecto_id):
     data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'ACTIVIDAD', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'RESPONSABLE', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'ESTADO', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', '% AVANCE', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'RESOLUCIÓN', workbook.add_format(reporte_formato('subtitulo'))))
     arreglo_data.append(data)
 
-    actividades = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase').filter(tarea__fase__proyecto=proyecto, finalizado__lt=100)
+    actividades = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase').filter(tarea__fase__proyecto=proyecto)
 
     for actividad in actividades:
         data = []
@@ -1635,14 +1634,15 @@ def reporte_avance_proyecto(proyecto_id):
         data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, workbook.add_format(reporte_formato('wrapping'))))
         data.append(reporte_data(None, None, 'string', actividad.descripcion, workbook.add_format(reporte_formato('wrapping'))))
         data.append(reporte_data(None, None, 'string', responsable, None))
+        data.append(reporte_data(None, None, 'string', 'COMPLETADO' if actividad.finalizado==100 else 'PENDIENTE', None))
         data.append(reporte_data(None, None, 'number', actividad.finalizado/100, workbook.add_format(reporte_formato('porcentaje'))))
         data.append(reporte_data(None, None, 'string', html2text.html2text(actividad.resolucion), None))
         arreglo_data.append(data)
 
     repote_escribe(worksheet, arreglo_data)
 
-    reporte_actividades_proyecto(proyecto_id, fecha_ini=None, fecha_fin=None, workbook=workbook, buffer=buffer)
-
+    #reporte_actividades_proyecto(proyecto_id, fecha_ini=None, fecha_fin=None, workbook=workbook, buffer=buffer)
+    
     workbook.close()
     buffer.seek(0)
 

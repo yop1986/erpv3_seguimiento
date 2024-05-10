@@ -404,7 +404,7 @@ class Proyecto_Actividad(models.Model):
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180)
     resolucion  = CKEditor5Field(verbose_name=_('Resolución'), blank=True, config_name='extends')
-    creacion    = models.DateField(_('Creación'), auto_now_add=True)
+    creacion    = models.DateField(_('Creación'))
     actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
     finalizado  = models.PositiveSmallIntegerField(verbose_name=_('% Completado'), default=0,
         validators=[ MaxValueValidator(100), MinValueValidator(0) ], help_text=_('Porcentaje de activdad completada de 0 - 100%'))
@@ -412,7 +412,7 @@ class Proyecto_Actividad(models.Model):
     responsable = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Responsable'), null=True, on_delete=models.RESTRICT)
     tarea       = models.ForeignKey(Proyecto_Tarea, verbose_name=_('Tarea'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.descripcion}'

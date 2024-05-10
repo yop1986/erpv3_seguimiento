@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django import forms
 from django.db.models import Max, Q
 from django.core.exceptions import ValidationError
@@ -126,7 +128,8 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
 
     class Meta:
         model = Proyecto_Actividad
-        fields = ['fase', 'tarea', 'descripcion', 'responsable', 'resolucion', 'finalizado']
+        fields = ['fase', 'tarea', 'creacion', 'descripcion', 'responsable', 'resolucion', 'finalizado']
+        widgets = { 'creacion': DateInput(format='%Y-%m-%d'), }
         
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
@@ -137,17 +140,16 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
                 self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=tarea.fase.proyecto, cerrado=False).order_by('descripcion')])
                 self.fields['tarea'].queryset = Proyecto_Tarea.objects.filter(fase = tarea.fase)
 
-                self.initial['fase'] = tarea.fase.id
-                self.initial['tarea'] = tarea.id
+                self.fields['fase'].initial = tarea.fase.id
 
-                self.fields['fase'].disabled = True
-                self.fields['fase'].widget.attrs["readonly"] = True
-                self.fields['tarea'].disabled = True
-                self.fields['tarea'].widget.attrs["readonly"] = True
+                #self.fields['fase'].disabled = True
+                #self.fields['fase'].widget.attrs["readonly"] = True
             else:
                 usrs    = Proyecto_Usuario.objects.filter(proyecto = args[0]).values_list('usuario_id')
                 self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=args[0], cerrado=False).order_by('descripcion')])
                 self.fields['tarea'].queryset = Proyecto_Tarea.objects.none()
+
+                self.fields['creacion'].initial = datetime.now()
 
                 self.fields['resolucion'].widget = forms.HiddenInput()
                 self.fields['finalizado'].widget = forms.HiddenInput()

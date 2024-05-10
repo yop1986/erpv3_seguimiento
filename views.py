@@ -1194,26 +1194,24 @@ class Proyecto_ActividadListView(PersonalListView, SeguimientoContextMixin):
     def get_queryset(self):
         try:
             valor_busqueda = self.request.GET.get('valor').lower()
+            queryset = super().get_queryset().select_related('tarea', 'tarea__fase')
         except:
-            valor_busqueda = None
+            valor_busqueda = ''
+            queryset = super().get_queryset().none()
 
-        queryset = super().get_queryset().select_related('tarea', 'tarea__fase').filter(finalizado__lt = 100)
         
-        if valor_busqueda:
-            if 'tarea:' in valor_busqueda:
-                tareas = Proyecto_Tarea.objects.filter(descripcion__icontains=valor_busqueda[6:].replace(' ', ''))
-                queryset = queryset.filter(tarea__in=tareas)
-            elif 'fase:' in valor_busqueda:
-                fases = Proyecto_Fase.objects.filter(descripcion__icontains=valor_busqueda[5:].replace(' ', ''))
-                queryset = queryset.filter(tarea__fase__in=fases)
-            elif 'proyecto:' in valor_busqueda:
-                proyectos = Proyecto.objects.filter(Q(nombre__icontains=valor_busqueda[9:])|Q(descripcion__icontains=valor_busqueda[9:]))
-                queryset = queryset.filter(tarea__fase__proyecto__in=proyectos)
-            else:
-                queryset = queryset.filter(descripcion__icontains=valor_busqueda)
+        if 'tarea:' in valor_busqueda:
+            tareas = Proyecto_Tarea.objects.filter(descripcion__icontains=valor_busqueda[6:].replace(' ', ''))
+            queryset = queryset.filter(tarea__in=tareas)
+        elif 'fase:' in valor_busqueda:
+            fases = Proyecto_Fase.objects.filter(descripcion__icontains=valor_busqueda[5:].replace(' ', ''))
+            queryset = queryset.filter(tarea__fase__in=fases)
+        elif 'proyecto:' in valor_busqueda:
+            proyectos = Proyecto.objects.filter(Q(nombre__icontains=valor_busqueda[9:])|Q(descripcion__icontains=valor_busqueda[9:]))
+            queryset = queryset.filter(tarea__fase__proyecto__in=proyectos)
+        else:
+            queryset = queryset.filter(descripcion__icontains=valor_busqueda)
 
-        if self.request.user.has_perm('seguimiento.proyect_admin'):
-            return queryset
         asignados = Proyecto_Usuario.objects.filter(usuario = self.request.user).values_list('proyecto', flat=True) 
         publicos = Proyecto.objects.filter(publico=True).values_list('id', flat=True)
 

@@ -59,6 +59,7 @@ urlpatterns = [
     path('tarea/actualizar/<uuid:pk>', views.Proyecto_TareaUpdateView.as_view(), name='update_proyectotarea'),
     path('tarea/eliminar/<uuid:pk>', views.Proyecto_TareaDeleteView.as_view(), name='delete_proyectotarea'),
 
+    path('actividad/', views.Proyecto_ActividadListView.as_view(), name='list_proyectoactividad'),
     path('actividad/nueva/', views.Proyecto_ActividadFormView.as_view(), name='create_proyectoactividad'),
     path('actividad/actualizar/<uuid:pk>', views.Proyecto_ActividadUpdateView.as_view(), name='update_proyectoactividad'),
     path('actividad/eliminar/<uuid:pk>', views.Proyecto_ActividadDeleteView.as_view(), name='delete_proyectoactividad'),
@@ -66,10 +67,11 @@ urlpatterns = [
     path('accordion/tarea/actividad/', views.accordion_tarea_actividad, name='accordion_tareaactividad'),
     path('pendiente/pendiente/', views.tabla_pendiente, name='tabla_pendiente'),
 
-    path('comentario/nuevo/', views.Comentario_FormView.as_view(), name='create_comentario'),
-    path('comentario/<uuid:pk>', views.Comentario_ListView.as_view(), name='list_comentario'),
+    path('comentario/nuevo/', views.ComentarioFormView.as_view(), name='create_comentario'),
+    path('comentario/<uuid:pk>', views.ComentarioListView.as_view(), name='list_comentario'),
+    path('comentario/eliminar/<uuid:pk>', views.ComentarioDeleteView.as_view(), name='delete_comentario'),
 
-    path('reporte/avance/proyecto', views.ReporteAvances_FormView.as_view(), name='reporte_avance_proyecto'),
-    path('reporte/actividades', views.ReporteActividades_FormView.as_view(), name='reporte_actividades_proyecto'),
+    path('reporte/avance/proyecto', views.ReporteAvancesFormView.as_view(), name='reporte_avance_proyecto'),
+    path('reporte/actividades', views.ReporteActividadesFormView.as_view(), name='reporte_actividades_proyecto'),
     path('proyecto/usuario/', views.combo_proyecto_usuario, name='combo_proyectousuario'),
 ]

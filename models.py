@@ -247,7 +247,7 @@ class Proyecto_Objetivo(models.Model):
 
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['creacion', 'proyecto', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.proyecto}:{self.descripcion[:max_length]}...'
@@ -274,7 +274,7 @@ class Proyecto_Meta(models.Model):
 
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['creacion', 'proyecto', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.proyecto}:{self.descripcion[:max_length]}...'
@@ -301,7 +301,7 @@ class Proyecto_Fase(models.Model):
 
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['correlativo', 'creacion', 'proyecto'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['correlativo', 'creacion'], user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
         constraints = [
@@ -352,7 +352,7 @@ class Proyecto_Tarea(models.Model):
 
     fase    = models.ForeignKey(Proyecto_Fase, verbose_name=_('Fase'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['creacion', 'fase', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
@@ -408,17 +408,25 @@ class Proyecto_Actividad(models.Model):
     finalizado  = models.PositiveSmallIntegerField(verbose_name=_('% Completado'), default=0,
         validators=[ MaxValueValidator(100), MinValueValidator(0) ], help_text=_('Porcentaje de activdad completada de 0 - 100%'))
 
-    responsable = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Responsable'), null=True, blank=True, on_delete=models.RESTRICT)
+    responsable = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Responsable'), null=True, on_delete=models.RESTRICT)
     tarea       = models.ForeignKey(Proyecto_Tarea, verbose_name=_('Tarea'), on_delete=models.RESTRICT)
 
-    history = HistoricalRecords(excluded_fields=['tarea', 'creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
 
+    def get_full_parent(self):
+        return f'{self.tarea.get_full_parent()} > {self.tarea}'
+
     def get_porcentaje(self):
         return f'{self.finalizado}%'
 
+    def url_detail(self):
+        return reverse_lazy('seguimiento:detail_proyecto', 
+            kwargs={'pk': self.tarea.fase.proyecto.id, 'faseactiva': self.tarea.fase.id}
+            )
+    
     def url_update(self):
         if self.tarea.fase.proyecto.get_modificable():
             return reverse_lazy('seguimiento:update_proyectoactividad', kwargs={'pk': self.id})
@@ -461,7 +469,9 @@ class Comentario(models.Model):
             return reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
         return None
 
-
+    def url_delete(self):
+        return reverse_lazy('seguimiento:delete_comentario', kwargs={'pk': self.id})
+        
     def get_objeto(self):
         if self.tipo == 'P':
             return _('Proyecto: ') + f'{Proyecto.objects.get(id = self.obj_id)}'
@@ -474,4 +484,15 @@ class Comentario(models.Model):
         else:
             return None
 
+    def get_proyecto_id(self):
+        if self.tipo == 'P':
+            return self.obj_id
+        elif self.tipo == 'F':
+            return Proyecto_Fase.objects.get(id = self.obj_id).proyecto_id
+        elif self.tipo == 'T':
+            return Proyecto_Tarea.objects.get(id = self.obj_id).fase__proyecto_id
+        elif self.tipo == 'A':
+            return Proyecto_Actividad.objects.get(id = self.obj_id).tarea__fase__proyecto__id
+        else:
+            return None
 

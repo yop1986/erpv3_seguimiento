@@ -5,7 +5,7 @@ from itertools import chain
 
 from django.apps import apps
 from django.contrib import messages
-from django.db.models import Q, Case, When, BooleanField
+from django.db.models import Q, Count, Case, When, BooleanField
 from django.http import FileResponse # HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
@@ -801,11 +801,14 @@ class ProyectoDeleteView(PersonalDeleteView, SeguimientoContextMixin):
     permission_required = 'seguimiento.delete_proyecto'
     template_name = 'template/delete_confirmation.html'
     model = Proyecto
-    success_url = reverse_lazy('seguimiento:list_proyecto')
+    success_message = 'Eliminación exitosa'
     extra_context = {
         'title': _('Eliminar proyecto'),
         'opciones': DISPLAYS['delete_form'],
     }
+
+    def get_success_url(self):
+        return reverse_lazy('seguimiento:list_proyecto')
 
 
 
@@ -1098,7 +1101,6 @@ class Proyecto_TareaListView(PersonalListView, SeguimientoContextMixin):
         queryset = queryset.filter(fase__proyecto__in = chain(asignados, publicos))
         return queryset
 
-
 class Proyecto_TareaFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_tarea'
     template_name = 'template/forms.html'
@@ -1161,6 +1163,62 @@ class Proyecto_TareaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
         return reverse_lazy('seguimiento:detail_proyecto', 
             kwargs={'pk': self.object.fase.proyecto.id, 'faseactiva': self.object.fase.id})
 
+
+class Proyecto_ActividadListView(PersonalListView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.view_proyecto_actividad'
+    template_name = 'template/list.html'
+    model = Proyecto_Actividad
+    ordering = ['descripcion', '-finalizado', 'creacion']
+    paginate_by = 50
+    extra_context = {
+        'title': _('Actividades pendientes'),
+        'campos': {
+            'enumerar': 1,
+            'lista': [ 'descripcion', ],
+            'opciones': _('Opciones'),
+        },
+        'opciones': DISPLAYS['opciones'],
+        'campos_extra': [
+            { 'nombre': _('Proyecto > Fase > Tarea'), 'funcion': 'get_full_parent', },
+            { 'nombre': _('Avance'), 'funcion': 'get_porcentaje', },
+        ],
+        'mensaje': {
+            'vacio': DISPLAYS['tabla_vacia'],
+        },
+        'busqueda': {
+            'buscar':   _('Buscar'),
+            'limpiar':  _('Limpiar'),
+        },
+    }
+
+    def get_queryset(self):
+        try:
+            valor_busqueda = self.request.GET.get('valor').lower()
+        except:
+            valor_busqueda = None
+
+        queryset = super().get_queryset().select_related('tarea', 'tarea__fase').filter(finalizado__lt = 100)
+        
+        if valor_busqueda:
+            if 'tarea:' in valor_busqueda:
+                tareas = Proyecto_Tarea.objects.filter(descripcion__icontains=valor_busqueda[6:].replace(' ', ''))
+                queryset = queryset.filter(tarea__in=tareas)
+            elif 'fase:' in valor_busqueda:
+                fases = Proyecto_Fase.objects.filter(descripcion__icontains=valor_busqueda[5:].replace(' ', ''))
+                queryset = queryset.filter(tarea__fase__in=fases)
+            elif 'proyecto:' in valor_busqueda:
+                proyectos = Proyecto.objects.filter(Q(nombre__icontains=valor_busqueda[9:])|Q(descripcion__icontains=valor_busqueda[9:]))
+                queryset = queryset.filter(tarea__fase__proyecto__in=proyectos)
+            else:
+                queryset = queryset.filter(descripcion__icontains=valor_busqueda)
+
+        if self.request.user.has_perm('seguimiento.proyect_admin'):
+            return queryset
+        asignados = Proyecto_Usuario.objects.filter(usuario = self.request.user).values_list('proyecto', flat=True) 
+        publicos = Proyecto.objects.filter(publico=True).values_list('id', flat=True)
+
+        queryset = queryset.filter(tarea__fase__proyecto__in = chain(asignados, publicos))
+        return queryset
 
 class Proyecto_ActividadFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_proyecto_actividad'
@@ -1235,8 +1293,17 @@ def accordion_tarea_actividad(request):
         fase = Proyecto_Fase.objects.get(id=request.GET.get('obj_id'))
         campos_actividad = ['creacion', 'descripcion', 'finalizado']
         tareas = Proyecto_Tarea.objects.filter(fase=fase)\
-            .order_by('descripcion') #'-prioridad', 
-        
+            .alias(
+                pendiente = Count('proyecto_actividad', filter=Q(proyecto_actividad__finalizado__lt = 100)),
+                sin_act = Count('proyecto_actividad'),
+            ).annotate(
+                fin=Case(
+                    When(pendiente__gt=0, then=False),
+                    When(sin_act = 0, then=False),
+                    default = True, 
+                    output_field=BooleanField()
+                ),
+            ).order_by('fin', 'descripcion') #'-prioridad', 
         context = {'fase': fase, 'tareas': tareas, 'campos': campos_actividad}
         return render(request, 'seguimiento/accordion_for_fase.html', context)
 
@@ -1266,7 +1333,7 @@ def tabla_pendiente(request):
 
 
 
-class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):
+class ComentarioFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.add_comentario'
     template_name = 'template/forms.html'
     form_class = Proyecto_Comentario_ModelForm
@@ -1296,7 +1363,7 @@ class Comentario_FormView(PersonalFormView, SeguimientoContextMixin):
             messages.error(self.request, error)
         return redirect(self.success_url)
 
-class Comentario_ListView(PersonalListView, SeguimientoContextMixin):
+class ComentarioListView(PersonalListView, SeguimientoContextMixin):
     permission_required = 'seguimiento.view_comentario'
     template_name = 'template/list.html'
     model = Comentario
@@ -1326,6 +1393,9 @@ class Comentario_ListView(PersonalListView, SeguimientoContextMixin):
     def get_context_data(self):
         context = super().get_context_data()
         context['title']= Proyecto.objects.get(pk=self.kwargs['pk']).__str__() + ': ' + _('Comentarios')
+        context['permisos'] = {
+                'delete': self.request.user.has_perm('seguimiento.delete_comentario'),
+        }
         return context
 
     def get_queryset(self):
@@ -1364,8 +1434,24 @@ class Comentario_ListView(PersonalListView, SeguimientoContextMixin):
 
         return queryset.order_by('-creacion')
 
+class ComentarioDeleteView(PersonalDeleteView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.delete_comentario'
+    template_name = 'template/delete_confirmation.html'
+    model = Comentario
+    #success_url =
+    success_message = 'Eliminación exitosa'
+    extra_context = {
+        'title': _('Eliminar comentario'),
+        'opciones': DISPLAYS['delete_form'],
+    }
 
-class ReporteAvances_FormView(PersonalFormView, SeguimientoContextMixin):
+    def get_success_url(self):
+        print(self.object.get_proyecto_id())
+        return reverse_lazy('seguimiento:list_comentario', kwargs={'pk': self.object.get_proyecto_id()})
+
+
+
+class ReporteAvancesFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.view_proyecto'
     template_name = 'template/forms.html'
     form_class = Proyecto_Reporte_Avances
@@ -1383,7 +1469,7 @@ class ReporteAvances_FormView(PersonalFormView, SeguimientoContextMixin):
         data = form.cleaned_data
         return reporte_avance_proyecto(data['proyecto'])
 
-class ReporteActividades_FormView(PersonalFormView, SeguimientoContextMixin):
+class ReporteActividadesFormView(PersonalFormView, SeguimientoContextMixin):
     permission_required = 'seguimiento.view_proyecto'
     template_name = 'seguimiento/forms.html'
     form_class = Proyecto_Reportes_Actividades
@@ -1410,20 +1496,25 @@ def combo_proyecto_usuario(request):
 
 
 #REPORTES
-def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin):
+def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin, workbook=None, buffer=None):
     proyecto    = Proyecto.objects.get(id = proyecto_id)
-    actividades = Proyecto_Actividad.objects.select_related('tarea__fase', 'tarea')\
-        .filter(tarea__fase__proyecto=proyecto, actualizacion__gte=fecha_ini, actualizacion__lte=fecha_fin)\
-        .order_by('descripcion')
+    if not fecha_ini or not fecha_fin:
+        actividades = Proyecto_Actividad.objects.select_related('tarea__fase', 'tarea')\
+            .filter(tarea__fase__proyecto=proyecto).order_by('descripcion')
+    else:
+        actividades = Proyecto_Actividad.objects.select_related('tarea__fase', 'tarea')\
+            .filter(tarea__fase__proyecto=proyecto, actualizacion__gte=fecha_ini, actualizacion__lte=fecha_fin)\
+            .order_by('descripcion')
 
     archivo = {
         'nombre': proyecto.nombre, 
         'ancho_columnas':   [(0, 0, 15), (1, 1, 30), (2 , 2, 30), (3, 3, 90), (4, 5, 30)],
         }
     
-    buffer = io.BytesIO()
-    workbook = xlsxwriter.Workbook(buffer)
-    worksheet = workbook.add_worksheet()
+    if not workbook:
+        buffer = io.BytesIO()
+        workbook = xlsxwriter.Workbook(buffer)
+    worksheet = workbook.add_worksheet('Detalle')
 
     #Ancho de columnas
     for columna in archivo['ancho_columnas']:
@@ -1489,7 +1580,7 @@ def reporte_avance_proyecto(proyecto_id):
 
     data  = []
     data.append(reporte_data(2, 0, 'string', 'FASE', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'DESCRIPCIÓN', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', '# ACTIVIDADES', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'PRIORIDAD', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'COMPLEJIDAD', workbook.add_format(reporte_formato('subtitulo'))))
@@ -1527,7 +1618,7 @@ def reporte_avance_proyecto(proyecto_id):
     data  = []
     data.append(reporte_data(0, 0, 'string', 'FASE', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'DESCRIPCIÓN', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(None, None, 'string', 'ACTIVIDAD', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'RESPONSABLE', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', '% AVANCE', workbook.add_format(reporte_formato('subtitulo'))))
     data.append(reporte_data(None, None, 'string', 'RESOLUCIÓN', workbook.add_format(reporte_formato('subtitulo'))))
@@ -1550,6 +1641,8 @@ def reporte_avance_proyecto(proyecto_id):
         arreglo_data.append(data)
 
     repote_escribe(worksheet, arreglo_data)
+
+    reporte_actividades_proyecto(proyecto_id, fecha_ini=None, fecha_fin=None, workbook=workbook, buffer=buffer)
 
     workbook.close()
     buffer.seek(0)

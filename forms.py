@@ -114,9 +114,10 @@ class Proyecto_Tarea_ModelForm(forms.ModelForm):
             if args and 'nuevo' in args:
                 self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=args[1], cerrado=False).order_by('descripcion')
             elif kwargs['instance']:
-                self.fields['fase'].queryset = Proyecto_Fase.objects.filter(id = kwargs['instance'].fase.id)
-                self.fields['fase'].disabled = True
-                self.fields['fase'].widget.attrs["readonly"] = True
+                fase = Proyecto_Fase.objects.get(id = self.initial['fase'])
+                self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=fase.proyecto_id).order_by('descripcion')
+                #self.fields['fase'].disabled = True
+                #self.fields['fase'].widget.attrs["readonly"] = True
         except:
             pass
 

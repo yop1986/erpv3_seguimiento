@@ -20,6 +20,10 @@ from usuarios.personal_views import Configuracion
 conf = Configuracion()
 
 class Estado(models.Model):
+    '''
+        Estados que puede manejar un proyecto
+        Por medio de este, se determina los estados que permiten realizar o no modificaciones a un proyecto.
+    '''
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion  = models.CharField(verbose_name=_('Descripción'), max_length=30, unique=True)
     bloquea = models.BooleanField(_('Bloquea modificaciones'), default=False, help_text=_('Determina si bloquea modificaciones'))
@@ -52,6 +56,9 @@ class Estado(models.Model):
         return reverse_lazy('seguimiento:delete_estado', kwargs={'pk': self.id})
 
 class Tipo_Proyecto(models.Model):
+    '''
+        Categorización para manejar proyectos
+    '''
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
     vigente = models.BooleanField(verbose_name=_('Estado'), default=True)
@@ -79,6 +86,9 @@ class Tipo_Proyecto(models.Model):
         return reverse_lazy('seguimiento:delete_tipo_proyecto', kwargs={'pk': self.id})
 
 class Origen_Proyecto(models.Model):
+    '''
+        De donde proviene la iniciativa del proyecto
+    '''
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
     vigente = models.BooleanField(verbose_name=_('Estado'), default=True)
@@ -106,6 +116,9 @@ class Origen_Proyecto(models.Model):
         return reverse_lazy('seguimiento:delete_origen_proyecto', kwargs={'pk': self.id})
 
 class PM_Proyecto(models.Model):
+    '''
+        Listado de Project Manager que se puede asignar a proyectos (si fuera necesario)
+    '''
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
     vigente = models.BooleanField(verbose_name=_('Estado'), default=True)
@@ -133,6 +146,9 @@ class PM_Proyecto(models.Model):
         return reverse_lazy('seguimiento:delete_pm_proyecto', kwargs={'pk': self.id})
 
 class Proyecto(models.Model):
+    '''
+        Información general del proyecto
+    '''
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90, unique=True)
     descripcion = CKEditor5Field(verbose_name=_('Descripción'), blank=True, config_name='extends')
@@ -215,6 +231,9 @@ class Proyecto(models.Model):
     def get_usuarios(self):
         return list(Proyecto_Usuario.objects.filter(proyecto=self))
 
+    def get_etiquetas(self):
+        return list(Proyecto_Etiqueta.objects.filter(proyecto=self))
+
     def url_create():
         return reverse_lazy('seguimiento:create_proyecto')
 
@@ -230,6 +249,9 @@ class Proyecto(models.Model):
         return reverse_lazy('seguimiento:delete_proyecto', kwargs={'pk': self.id})
 
 class Proyecto_Usuario(models.Model):
+    '''
+        Usuarios asignados al proyecto (útil cuando el proyecto no es público)
+    '''
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.CASCADE)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Usuario'), on_delete=models.CASCADE)
@@ -239,7 +261,44 @@ class Proyecto_Usuario(models.Model):
     def __str__(self):
         return self.usuario
 
+class Proyecto_Etiqueta(models.Model):
+    '''
+        Etiquetas que podrán ser utilizadas en las actividades dentro del proyecto
+    '''
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180, blank=True)
+    creacion    = models.DateField(_('Creación'), auto_now_add=True)
+    actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
+    vigente = models.BooleanField(verbose_name=_('Estado'), default=True)
+
+    proyecto= models.ForeignKey(Proyecto, verbose_name=_('Proyecto'), on_delete=models.CASCADE)
+
+    history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['proyecto', 'descripcion'], name='unq_pe_proyecto_descripcion'),
+        ]
+
+    def __str__(self, max_length=60):
+        return f'{self.descripcion}'
+
+    def get_vigente(self):
+        return _('Si') if self.vigente else _('No')
+
+    def url_detail(self):
+        return reverse_lazy('seguimiento:detail_proyectoetiqueta', kwargs={'pk': self.id})
+
+    def url_update(self):
+        return reverse_lazy('seguimiento:update_proyectoetiqueta', kwargs={'pk': self.id})
+
+    def url_delete(self):
+        return reverse_lazy('seguimiento:delete_proyectoetiqueta', kwargs={'pk': self.id})
+
 class Proyecto_Objetivo(models.Model):
+    '''
+        Objetivos generales del proyecto (suelen ser a largo plazo)
+    '''
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180, blank=True)
     alcanzado   = models.BooleanField(verbose_name=_('Alcanzado'), default=False)
@@ -267,6 +326,9 @@ class Proyecto_Objetivo(models.Model):
         return None
 
 class Proyecto_Meta(models.Model):
+    '''
+        Metas generales del proyecto (suelen ser a corto plazo)
+    '''
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180, blank=True)
     alcanzado   = models.BooleanField(verbose_name=_('Alcanzado'), default=False)
@@ -294,6 +356,9 @@ class Proyecto_Meta(models.Model):
         return None
 
 class Proyecto_Fase(models.Model):
+    '''
+        Forma de agrupar actividades, regularmente a lo largo del tiempo
+    '''
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     correlativo = models.PositiveSmallIntegerField(verbose_name=_('Correlativo'))
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180)
@@ -338,6 +403,9 @@ class Proyecto_Fase(models.Model):
         return None
 
 class Proyecto_Tarea(models.Model):
+    '''
+        Desglose de tareas que se deben realizar para dar por concluida una fase
+    '''
     PRIORIDADES = [
         (10, 'Baja'),
         (20, 'Media'),
@@ -401,6 +469,9 @@ class Proyecto_Tarea(models.Model):
         return self.get_prioridad_display()
 
 class Proyecto_Actividad(models.Model):
+    '''
+        Actividades puntuales que componen una tarea
+    '''
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(verbose_name=_('Descripción'), max_length=180)
     resolucion  = CKEditor5Field(verbose_name=_('Resolución'), blank=True, config_name='extends')
@@ -411,6 +482,7 @@ class Proyecto_Actividad(models.Model):
 
     responsable = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Responsable'), null=True, on_delete=models.RESTRICT)
     tarea       = models.ForeignKey(Proyecto_Tarea, verbose_name=_('Tarea'), on_delete=models.RESTRICT)
+    etiqueta    = models.ManyToManyField(Proyecto_Etiqueta, verbose_name=_('etiqueta'), blank=True)
 
     history = HistoricalRecords(excluded_fields=['actualizacion'], user_model=settings.AUTH_USER_MODEL)
 

@@ -10,7 +10,7 @@ from django_ckeditor_5.widgets import CKEditor5Widget
 from usuarios.models import Usuario
 from .models import (Proyecto, Proyecto_Usuario, Proyecto_Objetivo, 
     Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, 
-    Comentario)
+    Proyecto_Etiqueta, Comentario)
 
 
 class DateInput(forms.DateInput):
@@ -128,7 +128,7 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
 
     class Meta:
         model = Proyecto_Actividad
-        fields = ['fase', 'tarea', 'creacion', 'descripcion', 'responsable', 'resolucion', 'finalizado']
+        fields = ['fase', 'tarea', 'creacion', 'descripcion', 'responsable', 'resolucion', 'finalizado', 'etiqueta']
         widgets = { 'creacion': DateInput(format='%Y-%m-%d'), }
         
     def __init__(self, *args, **kwargs):
@@ -136,9 +136,11 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
         try:
             if kwargs and 'instance' in kwargs:
                 tarea   = kwargs['instance'].tarea
+                proyecto = tarea.fase.proyecto
                 usrs    = Proyecto_Usuario.objects.filter(proyecto = tarea.fase.proyecto).values_list('usuario_id')
-                self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=tarea.fase.proyecto, cerrado=False).order_by('descripcion')])
+                self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto = proyecto, cerrado=False).order_by('descripcion')])
                 self.fields['tarea'].queryset = Proyecto_Tarea.objects.filter(fase = tarea.fase)
+                self.fields['etiqueta'].queryset = self.fields['etiqueta'].queryset.filter(proyecto = proyecto).order_by('descripcion')
 
                 self.fields['fase'].initial = tarea.fase.id
 
@@ -148,6 +150,7 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
                 usrs    = Proyecto_Usuario.objects.filter(proyecto = args[0]).values_list('usuario_id')
                 self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=args[0], cerrado=False).order_by('descripcion')])
                 self.fields['tarea'].queryset = Proyecto_Tarea.objects.none()
+                self.fields['etiqueta'].queryset = self.fields['etiqueta'].queryset.filter(proyecto = args[0]).order_by('descripcion')
 
                 self.fields['creacion'].initial = datetime.now()
 
@@ -171,6 +174,20 @@ class Proyecto_Usuario_ModelForm(forms.ModelForm):
                 usrs = Proyecto_Usuario.objects.filter(proyecto=self.initial['proyecto']).values_list('usuario')
                 self.fields['usuario'].queryset = Usuario.objects.filter(is_active=True).exclude(id__in=usrs)\
                     .only('username', 'first_name', 'last_name')
+        except:
+            pass
+
+class Proyecto_Etiqueta_ModelForm(forms.ModelForm):
+    class Meta:
+        model = Proyecto_Etiqueta
+        fields = ['proyecto', 'descripcion']
+       
+    def __init__(self, *args, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            if(args and args[0]=='proyecto'):
+                self.fields['proyecto'].queryset = self.fields['proyecto'].queryset.filter(id=self.initial['proyecto'])
+                self.fields['proyecto'].widget = forms.HiddenInput()
         except:
             pass
 

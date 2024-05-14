@@ -30,22 +30,39 @@
         {% get_object_value object 'descripcion' %}
         
         <hr>
-        
-        <ul>
-          {% for elemento in object.get_usuarios %}
-          <li> 
-            <form class="row g-3" method="post" action="{% url 'seguimiento:delete_proyectousuario' elemento.id %}?next={% url 'seguimiento:detail_proyecto' object.id %}">
-              {% csrf_token %}
-              <div class="col-auto">
-              <input type="submit" value="X" name="" class="btn btn-danger btn-sm">
-              </div>
-              <div class="col-auto">
-              {{ elemento.usuario }}
-              </div> 
-            </form>
-          </li>
-          {% endfor %}
-        </ul>
+        <div class="row">
+          <div class="col-6">
+            <h3>Usuarios:</h3>
+            <ul>
+              {% for elemento in object.get_usuarios %}
+              <li> 
+                <form class="row g-3" method="post" action="{% url 'seguimiento:delete_proyectousuario' elemento.id %}?next={% url 'seguimiento:detail_proyecto' object.id %}">
+                  {% csrf_token %}
+                  <div class="col-auto">
+                  <input type="submit" value="X" name="" class="btn btn-danger btn-sm">
+                  </div>
+                  <div class="col-auto">
+                  {{ elemento.usuario }}
+                  </div> 
+                </form>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <div class="col-6">
+            <h3>Etiquetas:</h3>
+            <ul>
+              {% for elemento in object.get_etiquetas %}
+              <li>
+                <div class="col-auto">
+                {{ elemento.descripcion }}
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -227,7 +244,9 @@
 
     <div class="col" id="col_tarea">
       {% if faseactiva %}
-        <div id="faseactiva" obj_id="{{ faseactiva }}">{{ faseactiva }}</div>
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       {% endif %}
     </div>
 
@@ -240,6 +259,23 @@
     {% for form in forms %}
       {% include 'template/modal_form.html' %}
     {% endfor %}
+
+
+
+
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasRightLabel">
+  <div class="offcanvas-header">
+    <h5 id="offcanvasRightLabel">Offcanvas right</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    ...
+  </div>
+</div>
+
+
+
 
 
 <script type="text/javascript" src="{% static 'js/jquery-3.7.1.min.js' %}"></script>

@@ -9,6 +9,7 @@ from django.db.models import Q, Count, Case, When, BooleanField
 from django.http import FileResponse # HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.views.generic.base import TemplateView
 
@@ -18,11 +19,12 @@ from usuarios.personal_views import (PersonalContextMixin, PersonalCreateView,
     PersonalFormView, Configuracion)
 
 from .models import (Estado, Tipo_Proyecto, Origen_Proyecto, PM_Proyecto, Proyecto, Proyecto_Objetivo, 
-    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, Comentario)
+    Proyecto_Meta, Proyecto_Fase, Proyecto_Tarea, Proyecto_Actividad, Proyecto_Usuario, 
+    Proyecto_Etiqueta, Comentario)
 from .forms import (ProyectoForm, Proyecto_Objetivo_ModelForm, Proyecto_Meta_ModelForm,
     Proyecto_Fase_ModelForm, Proyecto_Tarea_ModelForm, Proyecto_Usuario_ModelForm, 
-    Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm, Proyecto_Reporte_Avances, 
-    Proyecto_Reportes_Actividades)
+    Proyecto_Etiqueta_ModelForm, Proyecto_Comentario_ModelForm, Proyecto_Actividad_ModelForm, 
+    Proyecto_Reporte_Avances, Proyecto_Reportes_Actividades)
 
 #gConfiguracion = Configuracion()
 
@@ -727,6 +729,15 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                             'form':     Proyecto_Usuario_ModelForm('proyecto', instance=Proyecto_Objetivo(proyecto=self.object)),
                             'opciones': DISPLAYS['forms'],
                         })
+        if self.request.user.has_perm('seguimiento.add_proyecto_etiqueta'):
+            formularios.append({
+                            'modal':    'proyecto_etiqueta', 
+                            'display':  _('Agregar etiqueta al proyecto'),
+                            'link_img': 'seguimiento_add_etiqueta.png',
+                            'action':   reverse_lazy('seguimiento:create_proyectoetiqueta')+'?next='+self.object.url_detail(),
+                            'form':     Proyecto_Etiqueta_ModelForm('proyecto', instance=Proyecto_Etiqueta(proyecto=self.object)),
+                            'opciones': DISPLAYS['forms'],
+                        })
         if self.request.user.has_perm('seguimiento.add_comentario'):
             formularios.append({
                             'modal':    'comentario',
@@ -833,8 +844,8 @@ class Proyecto_UsuarioFormView(PersonalFormView, SeguimientoContextMixin):
 
     def form_valid(self, form, *args, **kwargs):
         data = form.cleaned_data
-        proyecto_objetivo = Proyecto_Usuario(**data)
-        proyecto_objetivo.save()
+        usuario = Proyecto_Usuario(**data)
+        usuario.save()
         return super().form_valid(form)
 
 class Proyecto_UsuarioDeleteView(PersonalDeleteView, SeguimientoContextMixin):
@@ -854,6 +865,124 @@ class Proyecto_UsuarioDeleteView(PersonalDeleteView, SeguimientoContextMixin):
             self.success_url = redirect
         return kwargs
 
+
+
+class Proyecto_EtiquetaFormView(PersonalFormView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.add_proyecto_etiqueta'
+    template_name = 'template/forms.html'
+    form_class = Proyecto_Etiqueta_ModelForm
+    success_url = reverse_lazy('seguimiento:list_proyecto')
+    success_message = _('Etiqueta agregada correctamente')
+    extra_context = {
+        'title': _('Ingreso de etiqueta'),
+        'opciones': DISPLAYS['forms'],
+    }
+
+    def get_form_kwargs(self, **kwargs):
+        kwargs = super().get_form_kwargs()
+        redirect = self.request.GET.get('next')
+        if redirect:
+            self.success_url = redirect
+        return kwargs
+
+    def form_valid(self, form, *args, **kwargs):
+        data = form.cleaned_data
+        etiqueta = Proyecto_Etiqueta(**data)
+        etiqueta.save()
+        return super().form_valid(form)
+
+class Proyecto_EtiquetaListView(PersonalListView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.view_proyecto_etiqueta'
+    template_name = 'template/list.html'
+    model = Proyecto_Etiqueta
+    ordering = ['-vigente', 'proyecto__nombre', 'descripcion']
+    paginate_by = 10
+    extra_context = {
+        'title': _('Etiquetas de proyectos'),
+        'campos': {
+            'enumerar': 1,
+            'lista': [ 'descripcion', 'proyecto', 'creacion'],
+            'opciones': _('Opciones'),
+        },
+        'campos_extra': [
+            { 'nombre':   _('Vigente'), 'funcion': 'get_vigente', },
+            
+        ],
+        'opciones': DISPLAYS['opciones'],
+        'mensaje': {
+            'vacio': DISPLAYS['tabla_vacia'],
+        },
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['permisos'] = {
+            'update': self.request.user.has_perm('seguimiento.change_proyecto_etiqueta'),
+            'delete': self.request.user.has_perm('seguimiento.delete_proyecto_etiqueta'),
+        }
+        return context
+
+class Proyecto_EtiquetaDetailView(PersonalDetailView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.view_proyecto_etiqueta'
+    template_name = 'template/detail.html'
+    model = Proyecto_Etiqueta
+    extra_context = {
+        'title': _('Etiquetas del proyecto'),
+        'campos': {
+            'lista': [ 'descripcion', 'creacion', 'actualizacion', 'proyecto', ],
+            'opciones': _('Opciones'),
+        },
+        'campos_extra': [ 
+            { 'nombre': _('Vigente'), 'funcion': 'get_vigente'},
+        ],
+        'opciones': DISPLAYS['opciones'],
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['permisos'] = {
+            'update': self.request.user.has_perm('seguimiento.change_proyecto_etiqueta'),
+            'delete': self.request.user.has_perm('seguimiento.delete_proyecto_etiqueta'),
+        }
+        
+        context['tables'] = [
+            {
+                'title':        _('Actividades'),
+                'object_list':  Proyecto_Actividad.objects.none(), #filter(origen=self.object).order_by('actualizacion'),
+                'enumerar':     1,
+                'lista':        ['nombre', 'actualizacion'],
+                'opciones':     _('Opciones'),
+                'permisos': {
+                    #'update':   self.request.user.has_perm('seguimiento.change_proyecto_etiqueta'),
+                    #'delete':   self.request.user.has_perm('seguimiento.delete_proyecto_etiqueta'),
+                },
+                'next':         self.object.url_detail(),
+            },
+        ]
+        return context
+
+class Proyecto_EtiquetaUpdateView(PersonalUpdateView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.change_proyecto_etiqueta'
+    template_name = 'template/forms.html'
+    model = Proyecto_Etiqueta
+    fields = ['descripcion', 'vigente']
+    extra_context = {
+        'title': _('Modificar etiqueta'),
+        'opciones': DISPLAYS['forms'],
+    }
+
+    def get_success_url(self):
+        return self.object.url_detail()
+
+class Proyecto_EtiquetaDeleteView(PersonalDeleteView, SeguimientoContextMixin):
+    permission_required = 'qliksense.delete_proyecto_etiqueta'
+    template_name = 'template/delete_confirmation.html'
+    model = Proyecto_Etiqueta
+    success_url = reverse_lazy('seguimiento:list_proyectoetiqueta')
+    extra_context = {
+        'title': _('Eliminar etiqueta'),
+        'opciones': DISPLAYS['delete_form'],
+    }
 
 
 class Proyecto_ObjetivoFormView(PersonalFormView, SeguimientoContextMixin):
@@ -1239,10 +1368,12 @@ class Proyecto_ActividadFormView(PersonalFormView, SeguimientoContextMixin):
     def form_valid(self, form, *args, **kwargs):
         data = form.cleaned_data
         fase = Proyecto_Fase.objects.get(id = data.pop('fase'))
+        etiquetas = data.pop('etiqueta')
         self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
             kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
-        proyecto_actividad = Proyecto_Actividad(**data)
-        proyecto_actividad.save()
+        actividad = Proyecto_Actividad(**data)
+        actividad.save()
+        actividad.etiqueta.set(etiquetas)
         return super().form_valid(form)
 
     def form_invalid(self, form):
@@ -1289,7 +1420,7 @@ def combo_fase_tarea(request):
 def accordion_tarea_actividad(request):
     if request.user.has_perm('seguimiento.view_proyecto_tarea'):
         fase = Proyecto_Fase.objects.get(id=request.GET.get('obj_id'))
-        campos_actividad = ['creacion', 'descripcion', 'finalizado']
+        campos_actividad = ['creacion', 'descripcion', 'finalizado', 'responsable']
         tareas = Proyecto_Tarea.objects.filter(fase=fase)\
             .alias(
                 pendiente = Count('proyecto_actividad', filter=Q(proyecto_actividad__finalizado__lt = 100)),
@@ -1328,6 +1459,16 @@ def tabla_pendiente(request):
             }
         }
     return render(request, 'template/tables.html', context)
+
+def extrainfo_actividad(request):
+    if request.user.has_perm('seguimiento.view_proyecto_actividad'):
+        actividad = Proyecto_Actividad.objects.get(id=request.GET.get('obj_id'))
+        lista_etiquetas = ', '.join([e.descripcion for e in actividad.etiqueta.all().order_by('descripcion')])
+        context = {
+            'etiquetas': lista_etiquetas, 
+            'resolucion': mark_safe(actividad.resolucion)
+        }
+        return render(request, 'seguimiento/actividad_extrainfo.html', context)
 
 
 

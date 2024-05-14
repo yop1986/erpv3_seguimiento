@@ -54,7 +54,7 @@
         <table class="table table-striped">
           <tbody>
           {% for actividad in tarea.get_actividades %}
-            <tr>
+            <tr id="actividad" actividad_id='{{ actividad.id }}' data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight">
             {% for campo in campos %}
               <td>{% get_object_value actividad campo %}</td>
             {% endfor %}
@@ -103,4 +103,22 @@
         $('#comentario .modal-body form input#id_tipo').val(tipo)
       }
     });
+
+  //busca el id de la actividad para realizar una consulta y mostrar más información
+  $("tr#actividad").on('click', function(){
+    var obj_id = $(this).attr('actividad_id')
+    var titulo = $(this).find("td:nth-child(2)").text() //obtiene el texto (descripcion) de la segunda columna
+    $("h5#offcanvasRightLabel").html(titulo)
+
+    $.ajax({
+        url: "{% url 'seguimiento:informacion_extra_proyectoactividad' %}",
+        type: 'get',
+        data: {
+          'obj_id': obj_id,
+        },
+        success: function(data){
+          $("div.offcanvas-body").html(data);
+        },
+      });
+  });
 </script>

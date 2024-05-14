@@ -42,6 +42,12 @@ urlpatterns = [
     path('usuario/nuevo/', views.Proyecto_UsuarioFormView.as_view(), name='create_proyectousuario'),
     path('usuario/eliminar/<uuid:pk>', views.Proyecto_UsuarioDeleteView.as_view(), name='delete_proyectousuario'),
 
+    path('etiqueta/nueva/', views.Proyecto_EtiquetaFormView.as_view(), name='create_proyectoetiqueta'),
+    path('etiqueta/', views.Proyecto_EtiquetaListView.as_view(), name='list_proyectoetiqueta'),
+    path('etiqueta/ver/<uuid:pk>', views.Proyecto_EtiquetaDetailView.as_view(), name='detail_proyectoetiqueta'),
+    path('etiqueta/actualizar/<uuid:pk>', views.Proyecto_EtiquetaUpdateView.as_view(), name='update_proyectoetiqueta'),
+    path('etiqueta/eliminar/<uuid:pk>', views.Proyecto_EtiquetaDeleteView.as_view(), name='delete_proyectoetiqueta'),
+
     path('objetivo/nuevo/', views.Proyecto_ObjetivoFormView.as_view(), name='create_proyectoobjetivo'),
     path('objetivo/actualizar/<uuid:pk>', views.Proyecto_ObjetivoUpdateView.as_view(), name='update_proyectoobjetivo'),
     path('objetivo/eliminar/<uuid:pk>', views.Proyecto_ObjetivoDeleteView.as_view(), name='delete_proyectoobjetivo'),
@@ -66,6 +72,7 @@ urlpatterns = [
     path('fase/tarea/', views.combo_fase_tarea, name='combo_fasetarea'),
     path('accordion/tarea/actividad/', views.accordion_tarea_actividad, name='accordion_tareaactividad'),
     path('pendiente/pendiente/', views.tabla_pendiente, name='tabla_pendiente'),
+    path('info/extra', views.extrainfo_actividad, name='informacion_extra_proyectoactividad'),
 
     path('comentario/nuevo/', views.ComentarioFormView.as_view(), name='create_comentario'),
     path('comentario/<uuid:pk>', views.ComentarioListView.as_view(), name='list_comentario'),

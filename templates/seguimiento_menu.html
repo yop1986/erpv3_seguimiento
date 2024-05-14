@@ -9,14 +9,17 @@
       {% if perms.seguimiento.view_estado %}
         <li><a class="dropdown-item" href="{% url 'seguimiento:list_estado' %}">{% translate "Estados" %}</a></li>
       {% endif %}
-      {% if perms.seguimiento.view_tipo_proyecto %}
-        <li><a class="dropdown-item" href="{% url 'seguimiento:list_tipo_proyecto' %}">{% translate "Tipo de proyecto" %}</a></li>
+      {% if perms.seguimiento.view_proyecto_etiqueta %}
+        <li><a class="dropdown-item" href="{% url 'seguimiento:list_proyectoetiqueta' %}">{% translate "Etiquetas" %}</a></li>
       {% endif %}
       {% if perms.seguimiento.view_origen_proyecto %}
         <li><a class="dropdown-item" href="{% url 'seguimiento:list_origen_proyecto' %}">{% translate "Origen de proyecto" %}</a></li>
       {% endif %}
       {% if perms.seguimiento.view_pm_proyecto %}
         <li><a class="dropdown-item" href="{% url 'seguimiento:list_pm_proyecto' %}">{% translate "Project Manager" %}</a></li>
+      {% endif %}
+      {% if perms.seguimiento.view_tipo_proyecto %}
+        <li><a class="dropdown-item" href="{% url 'seguimiento:list_tipo_proyecto' %}">{% translate "Tipo de proyecto" %}</a></li>
       {% endif %}
     </ul>
   </li>

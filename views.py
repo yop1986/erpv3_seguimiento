@@ -6,7 +6,7 @@ from itertools import chain
 from django.apps import apps
 from django.contrib import messages
 from django.db.models import Q, Count, Case, When, BooleanField
-from django.http import FileResponse # HttpResponse
+from django.http import FileResponse, HttpResponseRedirect #, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils.safestring import mark_safe
@@ -891,6 +891,12 @@ class Proyecto_EtiquetaFormView(PersonalFormView, SeguimientoContextMixin):
         etiqueta.save()
         return super().form_valid(form)
 
+    def form_invalid(self, form, *args, **kwargs):
+        proy_id = form.cleaned_data['proyecto'].id
+        for error in form.errors.as_data()['__all__']:
+            messages.add_message(self.request, messages.WARNING, _(error.messages[0]))
+        return HttpResponseRedirect(reverse_lazy('seguimiento:detail_proyecto', kwargs={'pk': proy_id}))
+        
 class Proyecto_EtiquetaListView(PersonalListView, SeguimientoContextMixin):
     permission_required = 'seguimiento.view_proyecto_etiqueta'
     template_name = 'template/list.html'

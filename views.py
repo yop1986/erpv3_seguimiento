@@ -1453,10 +1453,11 @@ def tabla_pendiente(request):
             'table': {
                 'title': _('Pendientes'),
                 'object_list': pendientes,
-                'lista': ['creacion', 'tarea', 'descripcion'],
+                'lista': ['creacion', 'descripcion'],
                 'campos_extra': [
-                        { 'funcion': 'get_porcentaje' },
-                    ],
+                    { 'nombre': 'Fase > Tarea', 'funcion': 'get_full_name' },
+                    { 'nombre': 'Avance', 'funcion': 'get_porcentaje' },
+                ],
                 'opciones': _('Opciones'),
                 'permisos': {
                     'detail_img': 'seguimiento_detail.png',

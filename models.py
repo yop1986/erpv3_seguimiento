@@ -489,6 +489,9 @@ class Proyecto_Actividad(models.Model):
     def __str__(self, max_length=60):
         return f'{self.descripcion}'
 
+    def get_full_name(self):
+        return f'{self.tarea.fase} > {self.tarea}'
+
     def get_full_parent(self):
         return f'{self.tarea.get_full_parent()} > {self.tarea}'
 

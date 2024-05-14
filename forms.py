@@ -142,7 +142,7 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
                 proyecto = tarea.fase.proyecto
                 usrs    = Proyecto_Usuario.objects.filter(proyecto = tarea.fase.proyecto).values_list('usuario_id')
                 self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto = proyecto, cerrado=False).order_by('descripcion')])
-                self.fields['tarea'].queryset = Proyecto_Tarea.objects.filter(fase = tarea.fase)
+                self.fields['tarea'].queryset = Proyecto_Tarea.objects.filter(fase = tarea.fase).order_by('descripcion')
                 
                 self.fields['fase'].initial = tarea.fase.id
 

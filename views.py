@@ -1704,35 +1704,42 @@ def reporte_avance_proyecto(proyecto_id):
     fases   = Proyecto_Fase.objects.filter(proyecto=proyecto).order_by('descripcion')
     proy_usr= Proyecto_Usuario.objects.filter(proyecto=proyecto)
     
-    archivo = {
-        'nombre': proyecto.nombre, 
-        'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 7, 15)],
-        }
-    
-
     buffer = io.BytesIO()
     workbook = xlsxwriter.Workbook(buffer)
     worksheet = workbook.add_worksheet('General')
 
+    archivo = {
+        'nombre': proyecto.nombre, 
+        'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 7, 15)],
+        }
+    formatos = {
+        'titulo':   workbook.add_format(reporte_formato('titulo')),
+        'titulo%':  workbook.add_format(reporte_formato('titulo', 'porcentaje')),
+        'subtitulo':workbook.add_format(reporte_formato('subtitulo')),
+        '%':        workbook.add_format(reporte_formato('porcentaje')),
+        'wrapping': workbook.add_format(reporte_formato('wrapping')),
+    }
+    
     #Ancho de columnas
     for columna in archivo['ancho_columnas']:
         worksheet.set_column(*columna)
     
     arreglo_data = []
     data  = []
-    data.append(reporte_data(0, 0, 'string', proyecto.nombre, workbook.add_format(reporte_formato('titulo'))))
-    data.append(reporte_data(None, 7, 'number', proyecto.get_porcentaje_completado/100, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
+    
+    data.append(reporte_data(0, 0, 'string', proyecto.nombre, formatos['titulo']))
+    data.append(reporte_data(None, 7, 'number', proyecto.get_porcentaje_completado/100, formatos['titulo%']))
     arreglo_data.append(data)
 
     data  = []
-    data.append(reporte_data(2, 0, 'string', 'FASE', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'RESPONSABLE', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', '# ACTIVIDADES', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'PRIORIDAD', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'COMPLEJIDAD', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'ESTADO', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', '% AVANCE', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(2, 0, 'string', 'FASE', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'TAREA', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'RESPONSABLE', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', '# ACTIVIDADES', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'PRIORIDAD', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'COMPLEJIDAD', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'ESTADO', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', '% AVANCE', formatos['subtitulo']))
     arreglo_data.append(data)
 
     for fase in fases:
@@ -1748,25 +1755,26 @@ def reporte_avance_proyecto(proyecto_id):
             data.append(reporte_data(None, None, 'string', tarea.get_prioridad_display(), None))
             data.append(reporte_data(None, None, 'number', tarea.complejidad, None))
             data.append(reporte_data(None, None, 'string', 'COMPLETADO' if tarea.finalizado==1 else 'PENDIENTE', None))
-            data.append(reporte_data(None, None, 'number', tarea.finalizado/100, workbook.add_format(reporte_formato('porcentaje'))))
+            data.append(reporte_data(None, None, 'number', tarea.finalizado/100, formatos['%']))
             arreglo_data.append(data)
 
     repote_escribe(worksheet, arreglo_data)
 
-    worksheet = workbook.add_worksheet('Act. Pendientes')
+    worksheet = workbook.add_worksheet('Actividades')
     
-    for columna in [(0, 0, 30), (1, 2, 66), (3 , 5, 21)]:
+    for columna in [(0, 0, 30), (1, 2, 66), (3 , 6, 21), (7 , 7, 60)]:
         worksheet.set_column(*columna)
 
     arreglo_data = []
     data  = []
-    data.append(reporte_data(0, 0, 'string', 'FASE', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'ACTIVIDAD', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'RESPONSABLE', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'ESTADO', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', '% AVANCE', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'RESOLUCIÓN', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(0, 0, 'string', 'FASE', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'TAREA', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'ACTIVIDAD', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'ETIQUETAS', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'RESPONSABLE', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'ESTADO', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', '% AVANCE', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'RESOLUCIÓN', formatos['subtitulo']))
     arreglo_data.append(data)
 
     actividades = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase').filter(tarea__fase__proyecto=proyecto)
@@ -1777,13 +1785,14 @@ def reporte_avance_proyecto(proyecto_id):
         responsable = actividad.history.all().last().history_user if not responsable else responsable
         responsable = '' if not responsable else responsable.get_full_name()
 
-        data.append(reporte_data(None, None, 'string', actividad.tarea.fase.descripcion, workbook.add_format(reporte_formato('wrapping'))))
-        data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, workbook.add_format(reporte_formato('wrapping'))))
-        data.append(reporte_data(None, None, 'string', actividad.descripcion, workbook.add_format(reporte_formato('wrapping'))))
+        data.append(reporte_data(None, None, 'string', actividad.tarea.fase.descripcion, formatos['wrapping']))
+        data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, formatos['wrapping']))
+        data.append(reporte_data(None, None, 'string', actividad.descripcion, formatos['wrapping']))
+        data.append(reporte_data(None, None, 'string', ', '.join([e.descripcion for e in actividad.etiqueta.all().order_by('descripcion')]), formatos['wrapping']))
         data.append(reporte_data(None, None, 'string', responsable, None))
         data.append(reporte_data(None, None, 'string', 'COMPLETADO' if actividad.finalizado==100 else 'PENDIENTE', None))
-        data.append(reporte_data(None, None, 'number', actividad.finalizado/100, workbook.add_format(reporte_formato('porcentaje'))))
-        data.append(reporte_data(None, None, 'string', html2text.html2text(actividad.resolucion), None))
+        data.append(reporte_data(None, None, 'number', actividad.finalizado/100, formatos['%']))
+        data.append(reporte_data(None, None, 'string', html2text.html2text(actividad.resolucion),  formatos['wrapping']))
         arreglo_data.append(data)
 
     repote_escribe(worksheet, arreglo_data)

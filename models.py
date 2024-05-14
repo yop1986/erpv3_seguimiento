@@ -420,6 +420,7 @@ class Proyecto_Tarea(models.Model):
     actualizacion   = models.DateTimeField(_('Actualización'), auto_now=True)
 
     fase    = models.ForeignKey(Proyecto_Fase, verbose_name=_('Fase'), on_delete=models.RESTRICT)
+    etiqueta= models.ManyToManyField(Proyecto_Etiqueta, verbose_name=_('etiqueta'), blank=True)
 
     history = HistoricalRecords(excluded_fields=['creacion', 'actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
@@ -482,8 +483,7 @@ class Proyecto_Actividad(models.Model):
 
     responsable = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('Responsable'), null=True, on_delete=models.RESTRICT)
     tarea       = models.ForeignKey(Proyecto_Tarea, verbose_name=_('Tarea'), on_delete=models.RESTRICT)
-    etiqueta    = models.ManyToManyField(Proyecto_Etiqueta, verbose_name=_('etiqueta'), blank=True)
-
+    
     history = HistoricalRecords(excluded_fields=['actualizacion'], user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self, max_length=60):
@@ -491,6 +491,10 @@ class Proyecto_Actividad(models.Model):
 
     def get_full_parent(self):
         return f'{self.tarea.get_full_parent()} > {self.tarea}'
+
+    @property
+    def finalizado_porcentaje_prop(self):
+        return self.get_porcentaje()
 
     def get_porcentaje(self):
         return f'{self.finalizado}%'

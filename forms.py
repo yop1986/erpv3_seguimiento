@@ -108,16 +108,19 @@ class Proyecto_Fase_ModelForm(forms.ModelForm):
 class Proyecto_Tarea_ModelForm(forms.ModelForm):
     class Meta:
         model = Proyecto_Tarea
-        fields = ['fase', 'descripcion', 'prioridad', 'complejidad']
+        fields = ['fase', 'descripcion', 'prioridad', 'complejidad', 'etiqueta']
 
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
         try:
             if args and 'nuevo' in args:
                 self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=args[1], cerrado=False).order_by('descripcion')
+                self.fields['etiqueta'].queryset = self.fields['etiqueta'].queryset.filter(proyecto = args[1]).order_by('descripcion')
             elif kwargs['instance']:
                 fase = Proyecto_Fase.objects.get(id = self.initial['fase'])
-                self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=fase.proyecto_id).order_by('descripcion')
+                self.fields['fase'].queryset = Proyecto_Fase.objects.filter(proyecto=fase.proyecto).order_by('descripcion')
+                self.fields['etiqueta'].queryset = self.fields['etiqueta'].queryset.filter(proyecto = fase.proyecto).order_by('descripcion')
+
                 #self.fields['fase'].disabled = True
                 #self.fields['fase'].widget.attrs["readonly"] = True
         except:
@@ -128,7 +131,7 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
 
     class Meta:
         model = Proyecto_Actividad
-        fields = ['fase', 'tarea', 'creacion', 'descripcion', 'responsable', 'resolucion', 'finalizado', 'etiqueta']
+        fields = ['fase', 'tarea', 'creacion', 'descripcion', 'responsable', 'resolucion', 'finalizado']
         widgets = { 'creacion': DateInput(format='%Y-%m-%d'), }
         
     def __init__(self, *args, **kwargs):
@@ -140,8 +143,7 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
                 usrs    = Proyecto_Usuario.objects.filter(proyecto = tarea.fase.proyecto).values_list('usuario_id')
                 self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto = proyecto, cerrado=False).order_by('descripcion')])
                 self.fields['tarea'].queryset = Proyecto_Tarea.objects.filter(fase = tarea.fase)
-                self.fields['etiqueta'].queryset = self.fields['etiqueta'].queryset.filter(proyecto = proyecto).order_by('descripcion')
-
+                
                 self.fields['fase'].initial = tarea.fase.id
 
                 #self.fields['fase'].disabled = True
@@ -150,8 +152,7 @@ class Proyecto_Actividad_ModelForm(forms.ModelForm):
                 usrs    = Proyecto_Usuario.objects.filter(proyecto = args[0]).values_list('usuario_id')
                 self.fields['fase'].choices = elementos_combo([(str(f.id), f.descripcion) for f in Proyecto_Fase.objects.filter(proyecto=args[0], cerrado=False).order_by('descripcion')])
                 self.fields['tarea'].queryset = Proyecto_Tarea.objects.none()
-                self.fields['etiqueta'].queryset = self.fields['etiqueta'].queryset.filter(proyecto = args[0]).order_by('descripcion')
-
+                
                 self.fields['creacion'].initial = datetime.now()
 
                 self.fields['resolucion'].widget = forms.HiddenInput()

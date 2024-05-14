@@ -950,13 +950,12 @@ class Proyecto_EtiquetaDetailView(PersonalDetailView, SeguimientoContextMixin):
             'update': self.request.user.has_perm('seguimiento.change_proyecto_etiqueta'),
             'delete': self.request.user.has_perm('seguimiento.delete_proyecto_etiqueta'),
         }
-        
         context['tables'] = [
             {
-                'title':        _('Actividades'),
-                'object_list':  Proyecto_Actividad.objects.none(), #filter(origen=self.object).order_by('actualizacion'),
+                'title':        _('Tareas asociadas'),
+                'object_list':  self.object.proyecto_tarea_set.all(),
                 'enumerar':     1,
-                'lista':        ['nombre', 'actualizacion'],
+                'lista':        ['descripcion', 'actualizacion'],
                 'opciones':     _('Opciones'),
                 'permisos': {
                     #'update':   self.request.user.has_perm('seguimiento.change_proyecto_etiqueta'),
@@ -1257,10 +1256,12 @@ class Proyecto_TareaFormView(PersonalFormView, SeguimientoContextMixin):
     def form_valid(self, form, *args, **kwargs):
         data = form.cleaned_data
         fase = Proyecto_Fase.objects.get(id = data['fase'].id)
+        etiquetas = data.pop('etiqueta')
         self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
             kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
-        proyecto_tarea = Proyecto_Tarea(**data)
-        proyecto_tarea.save()
+        tarea = Proyecto_Tarea(**data)
+        tarea.save()
+        tarea.etiqueta.set(etiquetas)
         return super().form_valid(form)
 
     def form_invalid(self, form):
@@ -1374,12 +1375,10 @@ class Proyecto_ActividadFormView(PersonalFormView, SeguimientoContextMixin):
     def form_valid(self, form, *args, **kwargs):
         data = form.cleaned_data
         fase = Proyecto_Fase.objects.get(id = data.pop('fase'))
-        etiquetas = data.pop('etiqueta')
         self.success_url = reverse_lazy('seguimiento:detail_proyecto', 
             kwargs={'pk': fase.proyecto.id, 'faseactiva': fase.id})
         actividad = Proyecto_Actividad(**data)
         actividad.save()
-        actividad.etiqueta.set(etiquetas)
         return super().form_valid(form)
 
     def form_invalid(self, form):
@@ -1426,7 +1425,7 @@ def combo_fase_tarea(request):
 def accordion_tarea_actividad(request):
     if request.user.has_perm('seguimiento.view_proyecto_tarea'):
         fase = Proyecto_Fase.objects.get(id=request.GET.get('obj_id'))
-        campos_actividad = ['creacion', 'descripcion', 'finalizado', 'responsable']
+        campos_actividad = ['creacion', 'descripcion', 'finalizado_porcentaje_prop', 'responsable']
         tareas = Proyecto_Tarea.objects.filter(fase=fase)\
             .alias(
                 pendiente = Count('proyecto_actividad', filter=Q(proyecto_actividad__finalizado__lt = 100)),
@@ -1443,6 +1442,9 @@ def accordion_tarea_actividad(request):
         return render(request, 'seguimiento/accordion_for_fase.html', context)
 
 def tabla_pendiente(request):
+    '''
+        Tabla con información de las actividades pendientes
+    '''
     if request.user.has_perm('seguimiento.view_proyecto_pendiente'):
         pendientes = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase')\
             .filter(tarea__fase__proyecto=request.GET.get('obj_id'), finalizado__lt=100,
@@ -1469,8 +1471,8 @@ def tabla_pendiente(request):
 
 def extrainfo_actividad(request):
     if request.user.has_perm('seguimiento.view_proyecto_actividad'):
-        actividad = Proyecto_Actividad.objects.get(id=request.GET.get('obj_id'))
-        lista_etiquetas = ', '.join([e.descripcion for e in actividad.etiqueta.all().order_by('descripcion')])
+        actividad = Proyecto_Actividad.objects.select_related('tarea').get(id=request.GET.get('obj_id'))
+        lista_etiquetas = ', '.join([e.descripcion for e in actividad.tarea.etiqueta.all().order_by('descripcion')])
         context = {
             'etiquetas': lista_etiquetas, 
             'resolucion': mark_safe(actividad.resolucion)
@@ -1730,7 +1732,7 @@ def reporte_avance_proyecto(proyecto_id):
 
     archivo = {
         'nombre': f'Avances - {proyecto.nombre}', 
-        'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 7, 15)],
+        'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 8, 15)],
         }
     formatos = {
         'titulo':   workbook.add_format(reporte_formato('titulo')),
@@ -1748,13 +1750,14 @@ def reporte_avance_proyecto(proyecto_id):
     data  = []
     
     data.append(reporte_data(0, 0, 'string', proyecto.nombre, formatos['titulo']))
-    data.append(reporte_data(None, 7, 'number', proyecto.get_porcentaje_completado/100, formatos['titulo%']))
+    data.append(reporte_data(None, 8, 'number', proyecto.get_porcentaje_completado/100, formatos['titulo%']))
     arreglo_data.append(data)
 
     data  = []
     data.append(reporte_data(2, 0, 'string', 'FASE', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', 'TAREA', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', 'RESPONSABLE', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'ETIQUETAS', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', '# ACTIVIDADES', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', 'PRIORIDAD', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', 'COMPLEJIDAD', formatos['subtitulo']))
@@ -1764,17 +1767,17 @@ def reporte_avance_proyecto(proyecto_id):
 
     for fase in fases:
         data  = []
-        
-        for tarea in Proyecto_Tarea.objects.filter(fase=fase):
-            usr_id = Proyecto_Actividad.objects.filter(tarea = tarea).values_list('responsable_id', flat=True).distinct()
+        for tarea in Proyecto_Tarea.objects.filter(fase=fase).order_by('descripcion'):
             data = []
+            usr_id = Proyecto_Actividad.objects.filter(tarea = tarea).values_list('responsable_id', flat=True).distinct()
             data.append(reporte_data(None, None, 'string', fase.descripcion, None))
             data.append(reporte_data(None, None, 'string', tarea.descripcion, None))
             data.append(reporte_data(None, None, 'string', ', '.join([u.usuario.get_full_name() for u in proy_usr.filter(usuario_id__in=usr_id)]), None))
+            data.append(reporte_data(None, None, 'string', ', '.join([e.descripcion for e in tarea.etiqueta.all().order_by('descripcion')]), formatos['wrapping']))
             data.append(reporte_data(None, None, 'number', tarea.get_cantidad_actividades(), None))
             data.append(reporte_data(None, None, 'string', tarea.get_prioridad_display(), None))
             data.append(reporte_data(None, None, 'number', tarea.complejidad, None))
-            data.append(reporte_data(None, None, 'string', 'COMPLETADO' if tarea.finalizado==1 else 'PENDIENTE', None))
+            data.append(reporte_data(None, None, 'string', 'COMPLETADO' if tarea.finalizado==100 else 'PENDIENTE', None))
             data.append(reporte_data(None, None, 'number', tarea.finalizado/100, formatos['%']))
             arreglo_data.append(data)
 
@@ -1782,7 +1785,7 @@ def reporte_avance_proyecto(proyecto_id):
 
     worksheet = workbook.add_worksheet('Actividades')
     
-    for columna in [(0, 0, 30), (1, 2, 66), (3 , 6, 21), (7 , 7, 60)]:
+    for columna in [(0, 0, 30), (1, 2, 66), (3 , 6, 21), (7 , 6, 60)]:
         worksheet.set_column(*columna)
 
     arreglo_data = []
@@ -1790,14 +1793,14 @@ def reporte_avance_proyecto(proyecto_id):
     data.append(reporte_data(0, 0, 'string', 'FASE', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', 'TAREA', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', 'ACTIVIDAD', formatos['subtitulo']))
-    data.append(reporte_data(None, None, 'string', 'ETIQUETAS', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', 'RESPONSABLE', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', 'ESTADO', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', '% AVANCE', formatos['subtitulo']))
     data.append(reporte_data(None, None, 'string', 'RESOLUCIÓN', formatos['subtitulo']))
     arreglo_data.append(data)
 
-    actividades = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase').filter(tarea__fase__proyecto=proyecto)
+    actividades = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase')\
+        .filter(tarea__fase__proyecto=proyecto).order_by('tarea__fase__descripcion', 'tarea__descripcion', 'descripcion')
 
     for actividad in actividades:
         data = []
@@ -1808,7 +1811,6 @@ def reporte_avance_proyecto(proyecto_id):
         data.append(reporte_data(None, None, 'string', actividad.tarea.fase.descripcion, formatos['wrapping']))
         data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, formatos['wrapping']))
         data.append(reporte_data(None, None, 'string', actividad.descripcion, formatos['wrapping']))
-        data.append(reporte_data(None, None, 'string', ', '.join([e.descripcion for e in actividad.etiqueta.all().order_by('descripcion')]), formatos['wrapping']))
         data.append(reporte_data(None, None, 'string', responsable, None))
         data.append(reporte_data(None, None, 'string', 'COMPLETADO' if actividad.finalizado==100 else 'PENDIENTE', None))
         data.append(reporte_data(None, None, 'number', actividad.finalizado/100, formatos['%']))

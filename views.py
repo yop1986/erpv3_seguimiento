@@ -1445,7 +1445,7 @@ def accordion_tarea_actividad(request):
 def tabla_pendiente(request):
     if request.user.has_perm('seguimiento.view_proyecto_pendiente'):
         pendientes = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase')\
-            .filter(tarea__fase__proyecto=request.GET.get('obj_id'), finalizado__lt=100).order_by('finalizado')
+            .filter(tarea__fase__proyecto=request.GET.get('obj_id'), finalizado__lt=100).order_by('tarea__descripcion', 'descripcion')
         context = {
             'table': {
                 'title': _('Pendientes'),
@@ -1719,7 +1719,7 @@ def reporte_avance_proyecto(proyecto_id):
         '%':        workbook.add_format(reporte_formato('porcentaje')),
         'wrapping': workbook.add_format(reporte_formato('wrapping')),
     }
-    
+
     #Ancho de columnas
     for columna in archivo['ancho_columnas']:
         worksheet.set_column(*columna)

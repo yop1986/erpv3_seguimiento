@@ -1619,7 +1619,7 @@ class ReporteActividadesFormView(PersonalFormView, SeguimientoContextMixin):
     template_name = 'seguimiento/forms.html'
     form_class = Proyecto_Reportes_Actividades
     extra_context = {
-        'title': _('Reporte de actividades'),
+        'title': _('Reporte de actividades (por última actualización)'),
         'opciones': DISPLAYS['forms'],
     }
 
@@ -1642,42 +1642,55 @@ def combo_proyecto_usuario(request):
 
 #REPORTES
 def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin, workbook=None, buffer=None):
+    '''
+        REPORTE DE ACTIVIDADES
+    '''
     proyecto    = Proyecto.objects.get(id = proyecto_id)
-    if not fecha_ini or not fecha_fin:
-        actividades = Proyecto_Actividad.objects.select_related('tarea__fase', 'tarea')\
-            .filter(tarea__fase__proyecto=proyecto).order_by('descripcion')
-    else:
-        actividades = Proyecto_Actividad.objects.select_related('tarea__fase', 'tarea')\
-            .filter(tarea__fase__proyecto=proyecto, actualizacion__gte=fecha_ini, actualizacion__lte=fecha_fin)\
-            .order_by('descripcion')
 
-    archivo = {
-        'nombre': proyecto.nombre, 
-        'ancho_columnas':   [(0, 0, 15), (1, 1, 30), (2 , 2, 30), (3, 3, 90), (4, 5, 30)],
-        }
+    actividades = Proyecto_Actividad.objects.select_related('tarea__fase', 'tarea')\
+            .filter(tarea__fase__proyecto=proyecto)
     
+    if fecha_ini and fecha_fin:
+        actividades = actividades.filter(actualizacion__gte=fecha_ini, actualizacion__lte=fecha_fin)
+            
+    actividades = actividades.order_by('descripcion')
+
     if not workbook:
         buffer = io.BytesIO()
         workbook = xlsxwriter.Workbook(buffer)
     worksheet = workbook.add_worksheet('Detalle')
 
+    archivo = {
+        'nombre': f'Actividades - {proyecto.nombre}', 
+        'ancho_columnas':   [(0, 0, 15), (1, 1, 30), (2 , 2, 30), (3, 3, 90), (4, 6, 30)],
+        }
+    formatos = {
+        'titulo':   workbook.add_format(reporte_formato('titulo')),
+        'titulo%':  workbook.add_format(reporte_formato('titulo', 'porcentaje')),
+        'subtitulo':workbook.add_format(reporte_formato('subtitulo')),
+        '%':        workbook.add_format(reporte_formato('porcentaje')),
+        'fecha':    workbook.add_format(reporte_formato('fecha')),
+        'wrapping': workbook.add_format(reporte_formato('wrapping')),
+    }
+    
     #Ancho de columnas
     for columna in archivo['ancho_columnas']:
         worksheet.set_column(*columna)
 
     arreglo_data = []
     data  = []
-    data.append(reporte_data(0, 0, 'string', proyecto.nombre, workbook.add_format(reporte_formato('titulo'))))
-    data.append(reporte_data(None, 4, 'number', proyecto.get_porcentaje_completado/100, workbook.add_format(reporte_formato('titulo', 'porcentaje'))))
+    data.append(reporte_data(0, 0, 'string', proyecto.nombre, formatos['titulo']))
+    data.append(reporte_data(None, 4, 'number', proyecto.get_porcentaje_completado/100, formatos['titulo%']))
     arreglo_data.append(data)
 
     #Titulos
     data  = []
-    data.append(reporte_data(2, None, 'string', 'FECHA', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'FASE', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'TAREA', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'ACTIVIDAD', workbook.add_format(reporte_formato('subtitulo'))))
-    data.append(reporte_data(None, None, 'string', 'RESPONSABLE', workbook.add_format(reporte_formato('subtitulo'))))
+    data.append(reporte_data(2, None, 'string', 'FECHA', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'FASE', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'TAREA', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'ACTIVIDAD', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'RESPONSABLE', formatos['subtitulo']))
+    data.append(reporte_data(None, None, 'string', 'RESOLUCIÓN', formatos['subtitulo']))
     arreglo_data.append(data)
 
     for actividad in actividades:
@@ -1686,20 +1699,26 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin, workbook=Non
         responsable = '' if not responsable else responsable.get_full_name()
 
         data  = []
-        data.append(reporte_data(None, None, 'datetime', actividad.actualizacion, workbook.add_format(reporte_formato('fecha'))))
+        data.append(reporte_data(None, None, 'datetime', actividad.actualizacion, formatos['fecha']))
         data.append(reporte_data(None, None, 'string', actividad.tarea.fase.descripcion, None))
         data.append(reporte_data(None, None, 'string', actividad.tarea.descripcion, None))
         data.append(reporte_data(None, None, 'string', actividad.descripcion, None))
         data.append(reporte_data(None, None, 'string', responsable, None))
+        data.append(reporte_data(None, None, 'string', html2text.html2text(actividad.resolucion),  formatos['wrapping']))
         arreglo_data.append(data)
 
-    repote_escribe(worksheet, arreglo_data)   
-    workbook.close()
-    buffer.seek(0)
+    repote_escribe(worksheet, arreglo_data)
+
+    if workbook:
+        workbook.close()
+        buffer.seek(0)
 
     return FileResponse(buffer, as_attachment=True, filename=f'{archivo["nombre"]}.xlsx')
 
 def reporte_avance_proyecto(proyecto_id):
+    '''
+        REPORTE DE AVANCES
+    '''
     proyecto= Proyecto.objects.get(id = proyecto_id)
     fases   = Proyecto_Fase.objects.filter(proyecto=proyecto).order_by('descripcion')
     proy_usr= Proyecto_Usuario.objects.filter(proyecto=proyecto)
@@ -1709,7 +1728,7 @@ def reporte_avance_proyecto(proyecto_id):
     worksheet = workbook.add_worksheet('General')
 
     archivo = {
-        'nombre': proyecto.nombre, 
+        'nombre': f'Avances - {proyecto.nombre}', 
         'ancho_columnas':   [(0, 0, 36), (1, 1, 120), (2 , 7, 15)],
         }
     formatos = {
@@ -1797,10 +1816,9 @@ def reporte_avance_proyecto(proyecto_id):
 
     repote_escribe(worksheet, arreglo_data)
 
-    #reporte_actividades_proyecto(proyecto_id, fecha_ini=None, fecha_fin=None, workbook=workbook, buffer=buffer)
-    
-    workbook.close()
-    buffer.seek(0)
+    if workbook:
+        workbook.close()
+        buffer.seek(0)
 
     return FileResponse(buffer, as_attachment=True, filename=f'{archivo["nombre"]}.xlsx')
 

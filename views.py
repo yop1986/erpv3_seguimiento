@@ -1445,12 +1445,13 @@ def accordion_tarea_actividad(request):
 def tabla_pendiente(request):
     if request.user.has_perm('seguimiento.view_proyecto_pendiente'):
         pendientes = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase')\
-            .filter(tarea__fase__proyecto=request.GET.get('obj_id'), finalizado__lt=100).order_by('tarea__descripcion', 'descripcion')
+            .filter(tarea__fase__proyecto=request.GET.get('obj_id'), finalizado__lt=100,
+            responsable = request.user).order_by('tarea__descripcion', 'descripcion')
         context = {
             'table': {
                 'title': _('Pendientes'),
                 'object_list': pendientes,
-                'lista': ['creacion', 'tarea', 'descripcion', 'responsable'],
+                'lista': ['creacion', 'tarea', 'descripcion'],
                 'campos_extra': [
                         { 'funcion': 'get_porcentaje' },
                     ],

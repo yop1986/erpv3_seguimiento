@@ -1329,7 +1329,7 @@ class Proyecto_ActividadListView(PersonalListView, SeguimientoContextMixin):
 
     def get_queryset(self):
         try:
-            valor_busqueda = self.request.GET.get('valor').lower()
+            valor_busqueda = self.request.GET.get('valor').lower().strip()
             queryset = super().get_queryset().select_related('tarea', 'tarea__fase')
         except:
             valor_busqueda = ''

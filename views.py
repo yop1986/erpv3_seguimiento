@@ -1,6 +1,6 @@
 # https://xlsxwriter.readthedocs.io/
 import io, xlsxwriter, html2text
-from datetime import date
+from datetime import date, timedelta
 from itertools import chain
 
 from django.apps import apps
@@ -1634,7 +1634,8 @@ class ReporteActividadesFormView(PersonalFormView, SeguimientoContextMixin):
 
     def form_valid(self, form, *args, **kwargs):
         data = form.cleaned_data
-        return reporte_actividades_proyecto(data['proyecto'], data['fini'], data['ffin'])
+        ffin = data['ffin'] + timedelta(days=1) ### para tomar todo el último día
+        return reporte_actividades_proyecto(data['proyecto'], data['fini'], ffin)
 
 def combo_proyecto_usuario(request):
     if request.user.has_perm('seguimiento.view_proyecto'):

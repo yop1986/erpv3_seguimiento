@@ -1656,7 +1656,7 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin, workbook=Non
             .filter(tarea__fase__proyecto=proyecto)
     
     if fecha_ini and fecha_fin:
-        actividades = actividades.filter(actualizacion__gte=fecha_ini, actualizacion__lte=fecha_fin)
+        actividades = actividades.filter(actualizacion__gte=fecha_ini, actualizacion__lt=fecha_fin)
             
     actividades = actividades.order_by('descripcion')
 

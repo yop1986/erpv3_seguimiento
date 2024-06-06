@@ -1623,7 +1623,7 @@ class ReporteActividadesFormView(PersonalFormView, SeguimientoContextMixin):
     template_name = 'seguimiento/forms.html'
     form_class = Proyecto_Reportes_Actividades
     extra_context = {
-        'title': _('Reporte de actividades (por última actualización)'),
+        'title': _('Reporte de actividades (por creación)'),
         'opciones': DISPLAYS['forms'],
     }
 
@@ -1654,9 +1654,9 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin, workbook=Non
 
     actividades = Proyecto_Actividad.objects.select_related('tarea__fase', 'tarea')\
             .filter(tarea__fase__proyecto=proyecto)
-    
+
     if fecha_ini and fecha_fin:
-        actividades = actividades.filter(actualizacion__gte=fecha_ini, actualizacion__lt=fecha_fin)
+        actividades = actividades.filter(creacion__gte=fecha_ini, creacion__lt=fecha_fin)
             
     actividades = actividades.order_by('descripcion')
 
@@ -1685,7 +1685,7 @@ def reporte_actividades_proyecto(proyecto_id, fecha_ini, fecha_fin, workbook=Non
     arreglo_data = []
     data  = []
     data.append(reporte_data(0, 0, 'string', proyecto.nombre, formatos['titulo']))
-    data.append(reporte_data(None, 4, 'number', proyecto.get_porcentaje_completado/100, formatos['titulo%']))
+    data.append(reporte_data(None, 5, 'number', proyecto.get_porcentaje_completado/100, formatos['titulo%']))
     arreglo_data.append(data)
 
     #Titulos

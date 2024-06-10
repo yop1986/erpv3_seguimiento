@@ -1413,7 +1413,7 @@ class Proyecto_ActividadHistDetailView(PersonalDetailView, SeguimientoContextMix
                 'title':        _('Modificaciones'),
                 'object_list':  self.object.history.all(), #.order_by('-histoy_date'),
                 'enumerar':     1,
-                'lista':        ['descripcion', 'creacion', 'resolucion', 'finalizado', 'history_date', 'history_user'],
+                'lista':        ['tarea', 'descripcion', 'creacion', 'resolucion', 'finalizado', 'history_date', 'history_user'],
             },
         ]
         return context

@@ -625,6 +625,10 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
                 'origen', 'pm', ],
             'opciones': _('Opciones'),
         },
+        'busqueda': {
+            'buscar':   _('Buscar'),
+            'limpiar':  _('Limpiar'),
+        },
         'opciones': DISPLAYS['opciones'],
     }
 
@@ -641,7 +645,7 @@ class ProyectoDetailView(PersonalDetailView, SeguimientoContextMixin):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         estado_bloqueado = self.object.estado.bloquea
-
+        
         context['faseactiva'] = self.kwargs['faseactiva'] if 'faseactiva' in self.kwargs else None
         context['opcion'] = self.kwargs['opcion'] if 'opcion' in self.kwargs else None
         context['campos_extra'] = [
@@ -1438,6 +1442,7 @@ def accordion_tarea_actividad(request):
                     output_field=BooleanField()
                 ),
             ).order_by('fin', 'descripcion') #'-prioridad', 
+    
         context = {'fase': fase, 'tareas': tareas, 'campos': campos_actividad}
         return render(request, 'seguimiento/accordion_for_fase.html', context)
 
@@ -1446,12 +1451,21 @@ def tabla_pendiente(request):
         Tabla con información de las actividades pendientes
     '''
     if request.user.has_perm('seguimiento.view_proyecto_pendiente'):
-        pendientes = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase')\
-            .filter(tarea__fase__proyecto=request.GET.get('obj_id'), finalizado__lt=100,
-            responsable = request.user).order_by('tarea__descripcion', 'descripcion')
+        valor = request.GET.get('valor');
+        print(valor)
+        if valor:
+            tareas = Proyecto_Tarea.objects.filter(descripcion__icontains=valor)
+            pendientes = Proyecto_Actividad.objects.filter(tarea__in=tareas)
+            titulo = _('Busqueda')
+        else:
+            pendientes = Proyecto_Actividad.objects.select_related('tarea', 'tarea__fase')\
+                .filter(tarea__fase__proyecto=request.GET.get('obj_id'), finalizado__lt=100,
+                responsable = request.user).order_by('tarea__descripcion', 'descripcion')
+            titulo = _('Pendientes')
+
         context = {
             'table': {
-                'title': _('Pendientes'),
+                'title': titulo,
                 'object_list': pendientes,
                 'lista': ['creacion', 'descripcion'],
                 'campos_extra': [

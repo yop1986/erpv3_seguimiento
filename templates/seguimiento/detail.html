@@ -282,18 +282,36 @@
 <script>
     //Permite regresar a la fase activa que se estaba modificando
     $(document).ready(function() {
-      var faseactiva = "{{ faseactiva }}";
-      var opcion = "{{ opcion }}";
-      if (faseactiva != 'None') {
+      let valor_busqueda = new URLSearchParams(window.location.search);
+      let faseactiva = "{{ faseactiva }}";
+      let opcion = "{{ opcion }}";
+      
+      if (valor_busqueda.has('valor')) {
+        let valor = valor_busqueda.get('valor');
+        busqueda(valor);
+      } else if (faseactiva != 'None') {
         $('button#fase[obj_id="' + faseactiva +'"]').click();
       } else if (opcion == 'pendientes') {
         $('button#pendiente').click();
       }
     });
 
+    function busqueda(valor) {
+      $.ajax({
+        url: "{% url 'seguimiento:tabla_pendiente' %}",
+        type: 'get',
+        data: {
+          'valor': valor,
+        },
+        success: function(data){
+          $('div#col_tarea').html(data)
+        },
+      });
+    };
+
     // obtiene los pendientes que se desea ver y se recarga la seccion central
     $("button#pendiente").on('click', function(){
-      var obj_id  = $(this).attr('obj_id');
+      let obj_id  = $(this).attr('obj_id');
       $.ajax({
         url: "{% url 'seguimiento:tabla_pendiente' %}",
         type: 'get',
@@ -308,9 +326,9 @@
 
 
     // obtiene la fase que se desea ver y se recarga la seccion 
-    // central para observar tareas y actividades
+    // central para obserlet tareas y actividades
     $("button#fase").on('click', function(){
-      var obj_id  = $(this).attr('obj_id');
+      let obj_id  = $(this).attr('obj_id');
       $.ajax({
         url: "{% url 'seguimiento:accordion_tareaactividad' %}",
         type: 'get',
@@ -326,7 +344,7 @@
     // Permite modificar el combo de tarea con base en la fase seleccionada
     // al momento de crear una actividad
     $("select#id_fase").on('change', function(){
-      var fase_id = $(this).val()
+      let fase_id = $(this).val()
       $.ajax({
         url: "{% url 'seguimiento:combo_fasetarea' %}",
         type: 'get',

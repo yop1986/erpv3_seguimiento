@@ -1390,6 +1390,35 @@ class Proyecto_ActividadFormView(PersonalFormView, SeguimientoContextMixin):
             messages.error(self.request, error)
         return redirect(self.success_url)
 
+class Proyecto_ActividadHistDetailView(PersonalDetailView, SeguimientoContextMixin):
+    permission_required = 'seguimiento.view_proyecto_actividad'
+    template_name = 'template/detail.html'
+    model = Proyecto_Actividad
+    extra_context = {
+        'title': _('Histórico de actividad'),
+        'campos': {
+            'lista': ['tarea', 'descripcion', 'creacion', 'resolucion', 'finalizado', 'responsable'],
+            'opciones': _('Opciones'),
+        },
+        #'campos_extra': [ 
+        #    { 'nombre': _('Vigente'), 'funcion': 'get_vigente'},
+        #],
+        'opciones': DISPLAYS['opciones'],
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['tables'] = [
+            {
+                'title':        _('Modificaciones'),
+                'object_list':  self.object.history.all(), #.order_by('-histoy_date'),
+                'enumerar':     1,
+                'lista':        ['descripcion', 'creacion', 'resolucion', 'finalizado', 'history_date', 'history_user'],
+            },
+        ]
+        return context
+
+
 class Proyecto_ActividadUpdateView(PersonalUpdateView, SeguimientoContextMixin):
     permission_required = 'seguimiento.change_proyecto_actividad'
     template_name = 'seguimiento/forms.html'
@@ -1489,8 +1518,9 @@ def extrainfo_actividad(request):
         actividad = Proyecto_Actividad.objects.select_related('tarea').get(id=request.GET.get('obj_id'))
         lista_etiquetas = ', '.join([e.descripcion for e in actividad.tarea.etiqueta.all().order_by('descripcion')])
         context = {
-            'etiquetas': lista_etiquetas, 
-            'resolucion': mark_safe(actividad.resolucion)
+            'etiquetas':    lista_etiquetas, 
+            'resolucion':   mark_safe(actividad.resolucion),
+            'obj_id':       actividad.id,
         }
         return render(request, 'seguimiento/actividad_extrainfo.html', context)
 

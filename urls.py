@@ -67,6 +67,7 @@ urlpatterns = [
 
     path('actividad/', views.Proyecto_ActividadListView.as_view(), name='list_proyectoactividad'),
     path('actividad/nueva/', views.Proyecto_ActividadFormView.as_view(), name='create_proyectoactividad'),
+    path('actividad/ver/hist/<uuid:pk>', views.Proyecto_ActividadHistDetailView.as_view(), name='histdetail_proyectoactividad'),
     path('actividad/actualizar/<uuid:pk>', views.Proyecto_ActividadUpdateView.as_view(), name='update_proyectoactividad'),
     path('actividad/eliminar/<uuid:pk>', views.Proyecto_ActividadDeleteView.as_view(), name='delete_proyectoactividad'),
     path('fase/tarea/', views.combo_fase_tarea, name='combo_fasetarea'),

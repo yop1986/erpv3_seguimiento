@@ -1311,7 +1311,7 @@ class Proyecto_ActividadListView(PersonalListView, SeguimientoContextMixin):
     ordering = ['descripcion', '-finalizado', 'creacion']
     paginate_by = 50
     extra_context = {
-        'title': _('Actividades pendientes'),
+        'title': _('Buscar actividades'),
         'campos': {
             'enumerar': 1,
             'lista': [ 'descripcion', ],
